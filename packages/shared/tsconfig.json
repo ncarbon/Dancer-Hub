@@ -1,0 +1,10 @@
+{
+  "extends": "@dancer-hub/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node"
+  },
+  "include": ["src"]
+}

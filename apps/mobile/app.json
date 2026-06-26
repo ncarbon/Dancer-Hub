@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Dancer Hub",
+    "slug": "dancer-hub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "dancerhub",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.dancerhub.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#9333ea"
+      },
+      "package": "com.dancerhub.app"
+    },
+    "plugins": ["expo-router", "expo-document-picker"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
