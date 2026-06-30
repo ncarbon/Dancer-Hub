@@ -1,55 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 
 export default function AudioPlayer({ uri }: { uri: string }) {
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const player = useAudioPlayer({ uri });
+  const status = useAudioPlayerStatus(player);
 
   useEffect(() => {
-    let cancelled = false;
+    setAudioModeAsync({ playsInSilentModeIOS: true });
+  }, []);
 
-    async function load() {
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound } = await Audio.Sound.createAsync({ uri }, {}, (status) => {
-        if (!cancelled && status.isLoaded) setPlaying(status.isPlaying);
-      });
-      if (cancelled) {
-        sound.unloadAsync();
-        return;
-      }
-      soundRef.current = sound;
-      setLoading(false);
-    }
-
-    load();
-
-    return () => {
-      cancelled = true;
-      soundRef.current?.unloadAsync();
-      soundRef.current = null;
-    };
-  }, [uri]);
-
-  async function togglePlay() {
-    const sound = soundRef.current;
-    if (!sound) return;
-    if (playing) {
-      await sound.pauseAsync();
+  function togglePlay() {
+    if (status.playing) {
+      player.pause();
     } else {
-      await sound.playAsync();
+      player.play();
     }
   }
 
   return (
     <View style={styles.container}>
-      {loading ? (
+      {!status.isLoaded ? (
         <ActivityIndicator color="#9333ea" />
       ) : (
         <TouchableOpacity style={styles.playButton} onPress={togglePlay} activeOpacity={0.8}>
-          <Text style={styles.playIcon}>{playing ? '⏸' : '▶'}</Text>
-          <Text style={styles.playLabel}>{playing ? 'Pause' : 'Play'}</Text>
+          <Text style={styles.playIcon}>{status.playing ? '⏸' : '▶'}</Text>
+          <Text style={styles.playLabel}>{status.playing ? 'Pause' : 'Play'}</Text>
         </TouchableOpacity>
       )}
     </View>
