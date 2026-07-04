@@ -27,7 +27,6 @@ export default function UploadScreen() {
       setFile(result.assets[0]);
     }
   }
-
   async function handleUpload() {
     if (!file || !title.trim()) return;
     setUploading(true);

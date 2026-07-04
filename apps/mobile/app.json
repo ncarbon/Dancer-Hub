@@ -6,10 +6,15 @@
     "orientation": "portrait",
     "scheme": "dancerhub",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.dancerhub.app"
+      "bundleIdentifier": "com.dancerhub.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,9 +22,20 @@
       },
       "package": "com.dancerhub.app"
     },
-    "plugins": ["expo-router", "expo-document-picker"],
+    "plugins": [
+      "expo-router",
+      "expo-document-picker",
+      "expo-audio",
+      "expo-font"
+    ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9a91a0ca-5cdc-4ce8-ae71-760f16776f8b"
+      }
     }
   }
 }

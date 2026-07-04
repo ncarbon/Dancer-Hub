@@ -7,7 +7,7 @@ export default function AudioPlayer({ uri }: { uri: string }) {
   const status = useAudioPlayerStatus(player);
 
   useEffect(() => {
-    setAudioModeAsync({ playsInSilentModeIOS: true });
+    setAudioModeAsync({ playsInSilentMode: true });
   }, []);
 
   function togglePlay() {
