@@ -33,6 +33,9 @@ export default function TimelineScreen() {
     videoDurationSec?: string;
   }>();
   const [saving, setSaving] = useState(false);
+  const [sectionSheetOpen, setSectionSheetOpen] = useState(false);
+  const [sectionName, setSectionName] = useState('');
+  const [sectionTime, setSectionTime] = useState(0);
 
   useEffect(() => {
     if (params.isNew !== 'true') return;
@@ -416,6 +419,7 @@ export default function TimelineScreen() {
         <TouchableOpacity
           style={[styles.footerOutlined, { borderColor: palette.ink }]}
           activeOpacity={0.7}
+          onPress={() => { setSectionName(''); setSectionTime(state.t); setSectionSheetOpen(true); }}
         >
           <Text style={[styles.footerOutlinedText, { color: palette.ink }]}>＋ Section</Text>
         </TouchableOpacity>
@@ -429,6 +433,54 @@ export default function TimelineScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Section Sheet */}
+      <Modal visible={sectionSheetOpen} transparent animationType="slide" onRequestClose={() => setSectionSheetOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.sheetOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSectionSheetOpen(false)} />
+          <View style={[styles.sheet, { backgroundColor: palette.paper }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: 'rgba(43,39,34,0.18)' }]} />
+            <Text style={[styles.sheetTitle, { color: palette.ink }]}>Add section</Text>
+
+            {/* Time stepper */}
+            <View style={[styles.sheetRow, { borderColor: 'rgba(43,39,34,0.09)' }]}>
+              <Text style={[styles.sheetRowLabel, { color: '#8f887d' }]}>Time</Text>
+              <View style={styles.stepper}>
+                <TouchableOpacity style={[styles.stepBtn, { backgroundColor: '#eae5da' }]} onPress={() => setSectionTime(t => Math.max(0, t - 1))}>
+                  <Text style={[styles.stepBtnText, { color: palette.ink }]}>−</Text>
+                </TouchableOpacity>
+                <Text style={[styles.stepValue, { color: palette.ink }]}>{fmtTime(sectionTime)}</Text>
+                <TouchableOpacity style={[styles.stepBtn, { backgroundColor: '#eae5da' }]} onPress={() => setSectionTime(t => Math.min(state.duration, t + 1))}>
+                  <Text style={[styles.stepBtnText, { color: palette.ink }]}>＋</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Name input */}
+            <Text style={[styles.sheetSectionLabel, { color: palette.accent }]}>NAME</Text>
+            <TextInput
+              style={[styles.noteInput, { color: palette.ink, borderColor: 'rgba(43,39,34,0.14)' }]}
+              value={sectionName}
+              onChangeText={setSectionName}
+              placeholder="e.g. Intro, Chorus, Bridge…"
+              placeholderTextColor="#b8b1a4"
+              autoFocus
+            />
+
+            <TouchableOpacity
+              style={[styles.saveBtn, { backgroundColor: sectionName.trim() ? palette.ink : 'rgba(43,39,34,0.2)' }]}
+              onPress={() => {
+                if (!sectionName.trim()) return;
+                dispatch({ type: 'ADD_SECTION', name: sectionName.trim(), time: sectionTime });
+                setSectionSheetOpen(false);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.saveBtnText, { color: palette.paper }]}>Add section</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Cue Editor Sheet */}
       {state.sheetOpen && state.draft && (

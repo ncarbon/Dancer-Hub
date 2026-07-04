@@ -1,9 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
-  View, Text, TextInput, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Alert, ActivityIndicator, Modal,
-} from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  Modal,
+} from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import {
   createAudioPlayer,
   useAudioRecorder,
@@ -11,19 +19,31 @@ import {
   RecordingPresets,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
-} from 'expo-audio';
-import { useRouter, Href } from 'expo-router';
-import { useTheme } from '@/lib/theme';
-import { fmtTime } from '@/lib/rehearseStore';
+} from "expo-audio";
+import { useRouter, Href } from "expo-router";
+import { useTheme } from "@/lib/theme";
+import { fmtTime } from "@/lib/rehearseStore";
 
-const STYLES = ['Ballet', 'Contemporary', 'Hip Hop', 'Jazz', 'Ballroom'];
+const STYLES = [
+  "Salsa",
+  "Hustle",
+  "Kizomba",
+  "Samba",
+  "Reggaeton",
+  "Bachata",
+  "Ballet",
+  "Contemporary",
+  "Hip Hop",
+  "Jazz",
+  "Ballroom",
+];
 
 async function probeMediaDuration(uri: string): Promise<number> {
   const player = createAudioPlayer({ uri });
   try {
     for (let i = 0; i < 100; i++) {
       if (player.isLoaded && player.duration > 0) return player.duration;
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
     return player.duration;
   } finally {
@@ -34,18 +54,18 @@ async function probeMediaDuration(uri: string): Promise<number> {
 export default function ImportScreen() {
   const { palette } = useTheme();
   const router = useRouter();
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [videoAttached, setVideoAttached] = useState(false);
   const [videoUri, setVideoUri] = useState<string | null>(null);
-  const [videoFilename, setVideoFilename] = useState('');
-  const [videoDuration, setVideoDuration] = useState('');
+  const [videoFilename, setVideoFilename] = useState("");
+  const [videoDuration, setVideoDuration] = useState("");
   const [videoDurationSec, setVideoDurationSec] = useState(0);
   const [videoLoading, setVideoLoading] = useState(false);
   const [audioAttached, setAudioAttached] = useState(false);
   const [audioUri, setAudioUri] = useState<string | null>(null);
-  const [audioFilename, setAudioFilename] = useState('');
-  const [audioDuration, setAudioDuration] = useState('');
+  const [audioFilename, setAudioFilename] = useState("");
+  const [audioDuration, setAudioDuration] = useState("");
   const [audioDurationSec, setAudioDurationSec] = useState(0);
   const [audioLoading, setAudioLoading] = useState(false);
   const [recordingVisible, setRecordingVisible] = useState(false);
@@ -58,11 +78,17 @@ export default function ImportScreen() {
     (async () => {
       const { granted } = await requestRecordingPermissionsAsync();
       if (!granted) {
-        Alert.alert('Microphone access needed', 'Enable microphone access to record audio.');
+        Alert.alert(
+          "Microphone access needed",
+          "Enable microphone access to record audio.",
+        );
         setRecordingVisible(false);
         return;
       }
-      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        allowsRecording: true,
+      });
     })();
   }, [recordingVisible]);
 
@@ -76,7 +102,7 @@ export default function ImportScreen() {
       setVideoDurationSec(duration);
       setVideoAttached(true);
     } catch {
-      Alert.alert('Could not load video', 'Try a different file.');
+      Alert.alert("Could not load video", "Try a different file.");
     } finally {
       setVideoLoading(false);
     }
@@ -84,7 +110,7 @@ export default function ImportScreen() {
 
   async function pickVideoFile() {
     const result = await DocumentPicker.getDocumentAsync({
-      type: 'video/*',
+      type: "video/*",
       copyToCacheDirectory: true,
     });
     if (result.canceled || !result.assets[0]) return;
@@ -94,23 +120,27 @@ export default function ImportScreen() {
 
   function promptVideoSource() {
     if (videoLoading) return;
-    Alert.alert('Add video', undefined, [
-      { text: 'Choose file', onPress: pickVideoFile },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Add video", undefined, [
+      { text: "Choose file", onPress: pickVideoFile },
+      { text: "Cancel", style: "cancel" },
     ]);
   }
 
-  async function attachAudio(uri: string, filename: string, durationSec?: number) {
+  async function attachAudio(
+    uri: string,
+    filename: string,
+    durationSec?: number,
+  ) {
     setAudioLoading(true);
     try {
-      const duration = durationSec ?? await probeMediaDuration(uri);
+      const duration = durationSec ?? (await probeMediaDuration(uri));
       setAudioUri(uri);
       setAudioFilename(filename);
       setAudioDuration(fmtTime(duration));
       setAudioDurationSec(duration);
       setAudioAttached(true);
     } catch {
-      Alert.alert('Could not load audio', 'Try a different file.');
+      Alert.alert("Could not load audio", "Try a different file.");
     } finally {
       setAudioLoading(false);
     }
@@ -118,7 +148,7 @@ export default function ImportScreen() {
 
   async function pickAudioFile() {
     const result = await DocumentPicker.getDocumentAsync({
-      type: 'audio/*',
+      type: "audio/*",
       copyToCacheDirectory: true,
     });
     if (result.canceled || !result.assets[0]) return;
@@ -128,10 +158,10 @@ export default function ImportScreen() {
 
   function promptAudioSource() {
     if (audioLoading) return;
-    Alert.alert('Add audio', undefined, [
-      { text: 'Choose file', onPress: pickAudioFile },
-      { text: 'Record', onPress: () => setRecordingVisible(true) },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Add audio", undefined, [
+      { text: "Choose file", onPress: pickAudioFile },
+      { text: "Record", onPress: () => setRecordingVisible(true) },
+      { text: "Cancel", style: "cancel" },
     ]);
   }
 
@@ -140,7 +170,7 @@ export default function ImportScreen() {
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
     } catch {
-      Alert.alert('Recording failed', 'Could not start the microphone.');
+      Alert.alert("Recording failed", "Could not start the microphone.");
     }
   }
 
@@ -149,15 +179,17 @@ export default function ImportScreen() {
       await audioRecorder.stop();
       const uri = audioRecorder.uri;
       if (!uri) {
-        Alert.alert('Recording failed', 'No audio was captured.');
+        Alert.alert("Recording failed", "No audio was captured.");
         return;
       }
-      const durationSec = audioRecorder.getStatus().durationMillis / 1000 || audioRecorder.currentTime;
+      const durationSec =
+        audioRecorder.getStatus().durationMillis / 1000 ||
+        audioRecorder.currentTime;
       const filename = `recording_${Date.now()}.m4a`;
       setRecordingVisible(false);
       await attachAudio(uri, filename, durationSec);
     } catch {
-      Alert.alert('Recording failed', 'Could not save the recording.');
+      Alert.alert("Recording failed", "Could not save the recording.");
     }
   }
 
@@ -165,20 +197,37 @@ export default function ImportScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.paper }]}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+          >
             <Text style={[styles.backChev, { color: palette.ink }]}>‹</Text>
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: palette.ink }]}>New routine</Text>
+          <Text style={[styles.headerTitle, { color: palette.ink }]}>
+            New routine
+          </Text>
         </View>
 
         {/* Name field */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.fieldLabel, { color: palette.accent }]}>NAME</Text>
+          <Text style={[styles.fieldLabel, { color: palette.accent }]}>
+            NAME
+          </Text>
           <TextInput
-            style={[styles.nameInput, { color: palette.ink, borderBottomColor: palette.ink, fontFamily: 'Newsreader_400Regular' }]}
+            style={[
+              styles.nameInput,
+              {
+                color: palette.ink,
+                borderBottomColor: palette.ink,
+                fontFamily: "Newsreader_400Regular",
+              },
+            ]}
             value={name}
             onChangeText={setName}
             placeholder="Routine name…"
@@ -188,12 +237,21 @@ export default function ImportScreen() {
 
         {/* Video field */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.fieldLabel, { color: palette.accent }]}>VIDEO</Text>
+          <Text style={[styles.fieldLabel, { color: palette.accent }]}>
+            VIDEO
+          </Text>
           {videoAttached ? (
-            <View style={[styles.videoAttached, { backgroundColor: '#e2dccf' }]}>
+            <View
+              style={[styles.videoAttached, { backgroundColor: "#e2dccf" }]}
+            >
               <HatchView />
               <View style={styles.videoPlayAffordance}>
-                <View style={[styles.videoPlayCircle, { backgroundColor: 'rgba(0,0,0,0.35)' }]}>
+                <View
+                  style={[
+                    styles.videoPlayCircle,
+                    { backgroundColor: "rgba(0,0,0,0.35)" },
+                  ]}
+                >
                   <Text style={styles.videoPlayIcon}>▶</Text>
                 </View>
               </View>
@@ -201,8 +259,12 @@ export default function ImportScreen() {
                 <Text style={[styles.videoFilename, { color: palette.ink }]}>
                   {videoFilename} · {videoDuration}
                 </Text>
-                <View style={[styles.attachedBadge, { borderColor: '#5c7a5c' }]}>
-                  <Text style={[styles.attachedText, { color: '#5c7a5c' }]}>✓ Attached</Text>
+                <View
+                  style={[styles.attachedBadge, { borderColor: "#5c7a5c" }]}
+                >
+                  <Text style={[styles.attachedText, { color: "#5c7a5c" }]}>
+                    ✓ Attached
+                  </Text>
                 </View>
               </View>
             </View>
@@ -217,8 +279,14 @@ export default function ImportScreen() {
                 <ActivityIndicator color={palette.accent} />
               ) : (
                 <>
-                  <Text style={[styles.mediaDropPlus, { color: palette.accent }]}>＋</Text>
-                  <Text style={[styles.mediaDropLabel, { color: '#8f887d' }]}>Drop video or pick file</Text>
+                  <Text
+                    style={[styles.mediaDropPlus, { color: palette.accent }]}
+                  >
+                    ＋
+                  </Text>
+                  <Text style={[styles.mediaDropLabel, { color: "#8f887d" }]}>
+                    Drop video or pick file
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -227,12 +295,21 @@ export default function ImportScreen() {
 
         {/* Audio field */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.fieldLabel, { color: palette.accent }]}>AUDIO</Text>
+          <Text style={[styles.fieldLabel, { color: palette.accent }]}>
+            AUDIO
+          </Text>
           {audioAttached ? (
-            <View style={[styles.audioAttached, { backgroundColor: '#e2dccf' }]}>
+            <View
+              style={[styles.audioAttached, { backgroundColor: "#e2dccf" }]}
+            >
               <HatchView />
               <View style={styles.audioPlayAffordance}>
-                <View style={[styles.audioPlayCircle, { backgroundColor: 'rgba(0,0,0,0.35)' }]}>
+                <View
+                  style={[
+                    styles.audioPlayCircle,
+                    { backgroundColor: "rgba(0,0,0,0.35)" },
+                  ]}
+                >
                   <Text style={styles.audioPlayIcon}>▶</Text>
                 </View>
               </View>
@@ -240,8 +317,12 @@ export default function ImportScreen() {
                 <Text style={[styles.audioFilename, { color: palette.ink }]}>
                   {audioFilename} · {audioDuration}
                 </Text>
-                <View style={[styles.attachedBadge, { borderColor: '#5c7a5c' }]}>
-                  <Text style={[styles.attachedText, { color: '#5c7a5c' }]}>✓ Attached</Text>
+                <View
+                  style={[styles.attachedBadge, { borderColor: "#5c7a5c" }]}
+                >
+                  <Text style={[styles.attachedText, { color: "#5c7a5c" }]}>
+                    ✓ Attached
+                  </Text>
                 </View>
               </View>
             </View>
@@ -256,8 +337,14 @@ export default function ImportScreen() {
                 <ActivityIndicator color={palette.accent} />
               ) : (
                 <>
-                  <Text style={[styles.mediaDropPlus, { color: palette.accent }]}>＋</Text>
-                  <Text style={[styles.mediaDropLabel, { color: '#8f887d' }]}>Drop audio or record</Text>
+                  <Text
+                    style={[styles.mediaDropPlus, { color: palette.accent }]}
+                  >
+                    ＋
+                  </Text>
+                  <Text style={[styles.mediaDropLabel, { color: "#8f887d" }]}>
+                    Drop audio or record
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -266,9 +353,11 @@ export default function ImportScreen() {
 
         {/* Style chips */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.fieldLabel, { color: palette.accent }]}>STYLE</Text>
+          <Text style={[styles.fieldLabel, { color: palette.accent }]}>
+            STYLE
+          </Text>
           <View style={styles.chipRow}>
-            {STYLES.map(s => {
+            {STYLES.map((s) => {
               const active = selectedStyle === s;
               return (
                 <TouchableOpacity
@@ -276,17 +365,21 @@ export default function ImportScreen() {
                   style={[
                     styles.chip,
                     {
-                      backgroundColor: active ? palette.accent : 'transparent',
-                      borderColor: active ? palette.accent : 'rgba(43,39,34,0.25)',
+                      backgroundColor: active ? palette.accent : "transparent",
+                      borderColor: active
+                        ? palette.accent
+                        : "rgba(43,39,34,0.25)",
                     },
                   ]}
                   onPress={() => setSelectedStyle(active ? null : s)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[
-                    styles.chipText,
-                    { color: active ? palette.paper : palette.ink },
-                  ]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      { color: active ? palette.paper : palette.ink },
+                    ]}
+                  >
                     {s}
                   </Text>
                 </TouchableOpacity>
@@ -299,20 +392,24 @@ export default function ImportScreen() {
         <TouchableOpacity
           style={[
             styles.continueBtn,
-            { backgroundColor: canContinue ? palette.ink : 'rgba(43,39,34,0.20)' },
+            {
+              backgroundColor: canContinue
+                ? palette.ink
+                : "rgba(43,39,34,0.20)",
+            },
           ]}
           onPress={() => {
             if (!canContinue) return;
             router.push({
-              pathname: '/timeline',
+              pathname: "/timeline",
               params: {
-                isNew: 'true',
+                isNew: "true",
                 name: name.trim(),
-                style: selectedStyle ?? '',
-                audioUri: audioUri ?? '',
+                style: selectedStyle ?? "",
+                audioUri: audioUri ?? "",
                 audioFilename,
                 audioDurationSec: String(audioDurationSec),
-                videoUri: videoUri ?? '',
+                videoUri: videoUri ?? "",
                 videoFilename,
                 videoDurationSec: String(videoDurationSec),
               },
@@ -337,21 +434,33 @@ export default function ImportScreen() {
         }}
       >
         <View style={styles.recordingBackdrop}>
-          <View style={[styles.recordingSheet, { backgroundColor: palette.paper }]}>
-            <Text style={[styles.recordingTitle, { color: palette.ink }]}>Record audio</Text>
+          <View
+            style={[styles.recordingSheet, { backgroundColor: palette.paper }]}
+          >
+            <Text style={[styles.recordingTitle, { color: palette.ink }]}>
+              Record audio
+            </Text>
             <Text style={[styles.recordingTimer, { color: palette.accent }]}>
               {fmtTime(recorderState.durationMillis / 1000)}
             </Text>
             <TouchableOpacity
               style={[
                 styles.recordingBtn,
-                { backgroundColor: recorderState.isRecording ? '#8b3a3a' : palette.ink },
+                {
+                  backgroundColor: recorderState.isRecording
+                    ? "#8b3a3a"
+                    : palette.ink,
+                },
               ]}
-              onPress={recorderState.isRecording ? finishRecording : startRecording}
+              onPress={
+                recorderState.isRecording ? finishRecording : startRecording
+              }
               activeOpacity={0.85}
             >
               <Text style={[styles.recordingBtnText, { color: palette.paper }]}>
-                {recorderState.isRecording ? 'Stop & attach' : 'Start recording'}
+                {recorderState.isRecording
+                  ? "Stop & attach"
+                  : "Start recording"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -361,7 +470,9 @@ export default function ImportScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Text style={[styles.recordingCancel, { color: '#8f887d' }]}>Cancel</Text>
+              <Text style={[styles.recordingCancel, { color: "#8f887d" }]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -377,12 +488,13 @@ function HatchView() {
         <View
           key={i}
           style={{
-            position: 'absolute',
-            left: -40, right: -40,
+            position: "absolute",
+            left: -40,
+            right: -40,
             height: 8,
             top: i * 18 - 20,
-            backgroundColor: '#ddd7ca',
-            transform: [{ rotate: '45deg' }],
+            backgroundColor: "#ddd7ca",
+            transform: [{ rotate: "45deg" }],
           }}
         />
       ))}
@@ -394,26 +506,26 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { paddingHorizontal: 22, paddingBottom: 48, paddingTop: 12 },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 28,
   },
   backBtn: { marginRight: 10, padding: 4 },
   backChev: { fontSize: 28 },
   headerTitle: {
-    fontFamily: 'Newsreader_400Regular',
+    fontFamily: "Newsreader_400Regular",
     fontSize: 23,
   },
   fieldGroup: { marginBottom: 28 },
   fieldLabel: {
-    fontFamily: 'WorkSans_500Medium',
+    fontFamily: "WorkSans_500Medium",
     fontSize: 11,
     letterSpacing: 1.4,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginBottom: 10,
   },
   nameInput: {
-    fontFamily: 'Newsreader_400Regular',
+    fontFamily: "Newsreader_400Regular",
     fontSize: 18,
     borderBottomWidth: 1.5,
     paddingBottom: 8,
@@ -422,33 +534,33 @@ const styles = StyleSheet.create({
   videoAttached: {
     height: 120,
     borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
+    overflow: "hidden",
+    position: "relative",
   },
   videoPlayAffordance: {
     ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   videoPlayCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  videoPlayIcon: { color: '#fff', fontSize: 18 },
+  videoPlayIcon: { color: "#fff", fontSize: 18 },
   videoMeta: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 10,
     left: 12,
     right: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   videoFilename: {
-    fontFamily: 'WorkSans_400Regular',
+    fontFamily: "WorkSans_400Regular",
     fontSize: 11,
   },
   attachedBadge: {
@@ -458,24 +570,24 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   attachedText: {
-    fontFamily: 'WorkSans_500Medium',
+    fontFamily: "WorkSans_500Medium",
     fontSize: 10,
   },
   mediaDrop: {
     borderWidth: 1.5,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     borderRadius: 12,
     height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
   },
   mediaDropPlus: { fontSize: 22 },
   mediaDropLabel: {
-    fontFamily: 'WorkSans_400Regular',
+    fontFamily: "WorkSans_400Regular",
     fontSize: 13,
   },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     borderWidth: 1.5,
     borderRadius: 24,
@@ -483,72 +595,72 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   chipText: {
-    fontFamily: 'WorkSans_400Regular',
+    fontFamily: "WorkSans_400Regular",
     fontSize: 13,
   },
   continueBtn: {
     borderRadius: 28,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   continueBtnText: {
-    fontFamily: 'WorkSans_500Medium',
+    fontFamily: "WorkSans_500Medium",
     fontSize: 15,
   },
   audioAttached: {
     height: 120,
     borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
+    overflow: "hidden",
+    position: "relative",
   },
   audioPlayAffordance: {
     ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   audioPlayCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  audioPlayIcon: { color: '#fff', fontSize: 18 },
+  audioPlayIcon: { color: "#fff", fontSize: 18 },
   audioMeta: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 10,
     left: 12,
     right: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   audioFilename: {
-    fontFamily: 'WorkSans_400Regular',
+    fontFamily: "WorkSans_400Regular",
     fontSize: 11,
   },
   recordingBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(43,39,34,0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(43,39,34,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 28,
   },
   recordingSheet: {
-    width: '100%',
+    width: "100%",
     borderRadius: 16,
     paddingHorizontal: 24,
     paddingVertical: 28,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 16,
   },
   recordingTitle: {
-    fontFamily: 'Newsreader_400Regular',
+    fontFamily: "Newsreader_400Regular",
     fontSize: 20,
   },
   recordingTimer: {
-    fontFamily: 'WorkSans_500Medium',
+    fontFamily: "WorkSans_500Medium",
     fontSize: 28,
     letterSpacing: 1,
   },
@@ -556,15 +668,15 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingVertical: 14,
     paddingHorizontal: 28,
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
   },
   recordingBtnText: {
-    fontFamily: 'WorkSans_500Medium',
+    fontFamily: "WorkSans_500Medium",
     fontSize: 15,
   },
   recordingCancel: {
-    fontFamily: 'WorkSans_400Regular',
+    fontFamily: "WorkSans_400Regular",
     fontSize: 14,
     paddingVertical: 4,
   },

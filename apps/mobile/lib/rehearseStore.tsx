@@ -81,6 +81,8 @@ type Action =
   | { type: 'PREV_SECTION' }
   | { type: 'NEXT_SECTION' }
   | { type: 'TICK'; dt: number }
+  | { type: 'ADD_SECTION'; name: string; time: number }
+  | { type: 'DELETE_SECTION'; id: string }
   | { type: 'INIT_ROUTINE'; duration: number }
   | {
       type: 'LOAD_ROUTINE';
@@ -174,6 +176,17 @@ function reducer(state: RoutineState, action: Action): RoutineState {
       if (after.length) return { ...state, t: after[0].time };
       return state;
     }
+
+    case 'ADD_SECTION': {
+      const sections = [
+        ...state.sections,
+        { id: `s${Date.now()}`, time: Math.max(0, Math.min(action.time, state.duration)), name: action.name },
+      ].sort((a, b) => a.time - b.time);
+      return { ...state, sections };
+    }
+
+    case 'DELETE_SECTION':
+      return { ...state, sections: state.sections.filter(s => s.id !== action.id) };
 
     case 'LOAD_ROUTINE':
       return {

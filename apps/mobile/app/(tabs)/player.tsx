@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  SafeAreaView, PanResponder, Dimensions, ActivityIndicator,
+  SafeAreaView, PanResponder, Dimensions, ActivityIndicator, Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
@@ -14,6 +14,11 @@ const SCREEN_W = Dimensions.get('window').width;
 const WAVE_W = SCREEN_W - 44;
 const SPEED_TRACK_W = SCREEN_W - 76; // controlCard marginHorizontal 22*2 + padding 16*2
 
+const STYLES = [
+  'Salsa', 'Hustle', 'Kizomba', 'Samba', 'Reggaeton', 'Bachata',
+  'Ballet', 'Contemporary', 'Hip Hop', 'Jazz', 'Ballroom',
+];
+
 export default function PlayerScreen() {
   const { palette, sectionColor } = useTheme();
   const { state, dispatch } = useStore();
@@ -21,6 +26,8 @@ export default function PlayerScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
 
   const [routine, setRoutine] = useState<Routine | null>(null);
+  const [routineStyle, setRoutineStyle] = useState<string | null>(null);
+  const [stylePickerOpen, setStylePickerOpen] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(!!id);
 
@@ -38,6 +45,7 @@ export default function PlayerScreen() {
 
       const r = data as Routine & { sections: DBSection[]; cues: DBCue[] };
       setRoutine(r);
+      setRoutineStyle(r.style ?? null);
 
       dispatch({
         type: 'LOAD_ROUTINE',
@@ -63,6 +71,14 @@ export default function PlayerScreen() {
     }
     load();
   }, [id]);
+
+  async function updateStyle(s: string) {
+    const next = s === routineStyle ? null : s;
+    setRoutineStyle(next);
+    if (routine?.id) {
+      await supabase.from('routines').update({ style: next }).eq('id', routine.id);
+    }
+  }
 
   // ── Audio playback ─────────────────────────────────────────────────────────
   const player = useAudioPlayer(audioUrl ? { uri: audioUrl } : { uri: '' });
@@ -252,6 +268,23 @@ export default function PlayerScreen() {
           <TransportBtn onPress={() => dispatch({ type: 'NEXT_SECTION' })} label="⏭" palette={palette} />
         </View>
 
+        {/* Style */}
+        <View style={styles.controlCard}>
+          <View style={styles.controlRow}>
+            <Text style={[styles.controlLabel, { color: palette.ink }]}>Style</Text>
+            <TouchableOpacity onPress={() => setStylePickerOpen(true)} activeOpacity={0.7} style={styles.styleRow}>
+              {routineStyle ? (
+                <View style={[styles.styleTag, { backgroundColor: palette.accent }]}>
+                  <Text style={[styles.styleTagText, { color: palette.paper }]}>{routineStyle}</Text>
+                </View>
+              ) : (
+                <Text style={[styles.controlSub, { color: '#8f887d' }]}>None</Text>
+              )}
+              <Text style={[styles.editLink, { color: palette.accent }]}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Speed */}
         <View style={[styles.controlCard, { shadowColor: 'rgba(90,80,66,0.08)' }]}>
           <View style={styles.controlRow}>
@@ -312,6 +345,37 @@ export default function PlayerScreen() {
           <Text style={[styles.timelineBtnText, { color: palette.accent }]}>Open timeline editor →</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal visible={stylePickerOpen} transparent animationType="fade" onRequestClose={() => setStylePickerOpen(false)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setStylePickerOpen(false)}>
+          <TouchableOpacity style={[styles.modalSheet, { backgroundColor: palette.paper }]} activeOpacity={1}>
+            <Text style={[styles.modalTitle, { color: palette.ink }]}>Dance style</Text>
+            <View style={styles.chipRow}>
+              {STYLES.map((s) => {
+                const active = routineStyle === s;
+                return (
+                  <TouchableOpacity
+                    key={s}
+                    style={[styles.chip, {
+                      backgroundColor: active ? palette.accent : 'transparent',
+                      borderColor: active ? palette.accent : 'rgba(43,39,34,0.25)',
+                    }]}
+                    onPress={() => { updateStyle(s); setStylePickerOpen(false); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.chipText, { color: active ? palette.paper : palette.ink }]}>{s}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {routineStyle && (
+              <TouchableOpacity onPress={() => { setRoutineStyle(null); supabase.from('routines').update({ style: null }).eq('id', routine?.id ?? ''); setStylePickerOpen(false); }} activeOpacity={0.7}>
+                <Text style={[styles.clearStyle, { color: '#8f887d' }]}>Clear style</Text>
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -374,6 +438,17 @@ const styles = StyleSheet.create({
   sliderThumb: { position: 'absolute', top: -8, width: 20, height: 20, borderRadius: 10, marginLeft: -10 },
   sliderBtns: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stepBtn: { fontSize: 20, width: 32, textAlign: 'center' },
+  styleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  styleTag: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  styleTagText: { fontFamily: 'WorkSans_500Medium', fontSize: 12 },
+  editLink: { fontFamily: 'WorkSans_500Medium', fontSize: 13 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(43,39,34,0.45)', justifyContent: 'flex-end' },
+  modalSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, gap: 16 },
+  modalTitle: { fontFamily: 'Newsreader_400Regular', fontSize: 20, marginBottom: 4 },
+  clearStyle: { fontFamily: 'WorkSans_400Regular', fontSize: 13, textAlign: 'center', paddingTop: 4 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderWidth: 1.5, borderRadius: 24, paddingHorizontal: 14, paddingVertical: 7 },
+  chipText: { fontFamily: 'WorkSans_400Regular', fontSize: 13 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepperBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   stepBtnText: { fontSize: 18 },
