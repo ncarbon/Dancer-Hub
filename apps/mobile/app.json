@@ -12,13 +12,15 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.dancerhub.app",
+      "icon": "./ios/DancerHub/Images.xcassets/AppIcon.appiconset/AppIcon-1024.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#9333ea"
+        "foregroundImage": "./assets/icons/adaptive-foreground.png",
+        "backgroundImage": "./assets/icons/adaptive-background.png"
       },
       "package": "com.dancerhub.app"
     },
@@ -26,7 +28,14 @@
       "expo-router",
       "expo-document-picker",
       "expo-audio",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Dancer Hub to access your photo library to attach videos to routines."
+        }
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

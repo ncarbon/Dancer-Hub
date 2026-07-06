@@ -83,6 +83,7 @@ type Action =
   | { type: 'TICK'; dt: number }
   | { type: 'ADD_SECTION'; name: string; time: number }
   | { type: 'DELETE_SECTION'; id: string }
+  | { type: 'RETIME_SECTION'; id: string; time: number }
   | { type: 'INIT_ROUTINE'; duration: number }
   | {
       type: 'LOAD_ROUTINE';
@@ -188,6 +189,12 @@ function reducer(state: RoutineState, action: Action): RoutineState {
     case 'DELETE_SECTION':
       return { ...state, sections: state.sections.filter(s => s.id !== action.id) };
 
+    case 'RETIME_SECTION': {
+      const t = Math.max(0, Math.min(action.time, state.duration));
+      const sections = state.sections.map(s => s.id === action.id ? { ...s, time: t } : s).sort((a, b) => a.time - b.time);
+      return { ...state, sections };
+    }
+
     case 'LOAD_ROUTINE':
       return {
         ...SEED,
@@ -224,6 +231,16 @@ export function fmtTime(t: number): string {
 export function currentSection(state: RoutineState): Section | null {
   const before = state.sections.filter(s => s.time <= state.t).sort((a, b) => b.time - a.time);
   return before[0] ?? null;
+}
+
+export function currentCue(state: RoutineState): Cue | null {
+  const before = state.cues.filter(c => c.time <= state.t).sort((a, b) => b.time - a.time);
+  return before[0] ?? null;
+}
+
+export function nextCue(state: RoutineState): Cue | null {
+  const after = state.cues.filter(c => c.time > state.t).sort((a, b) => a.time - b.time);
+  return after[0] ?? null;
 }
 
 interface StoreContextValue {

@@ -6,8 +6,9 @@ import {
 } from 'react-native';
 import { useRouter, Href, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
+import { useVideoPlayer } from 'expo-video';
 import { useTheme } from '@/lib/theme';
-import { useStore, fmtTime, CueType, Count } from '@/lib/rehearseStore';
+import { useStore, fmtTime, CueType, Count, Section } from '@/lib/rehearseStore';
 import { supabase } from '@/lib/supabase';
 
 const CUE_TYPES: CueType[] = ['count', 'formation', 'movement', 'entrance', 'lift', 'note'];
@@ -36,6 +37,7 @@ export default function TimelineScreen() {
   const [sectionSheetOpen, setSectionSheetOpen] = useState(false);
   const [sectionName, setSectionName] = useState('');
   const [sectionTime, setSectionTime] = useState(0);
+  const [sectionEditTarget, setSectionEditTarget] = useState<Section | null>(null);
 
   useEffect(() => {
     if (params.isNew !== 'true') return;
@@ -49,6 +51,8 @@ export default function TimelineScreen() {
   const player = useAudioPlayer(params.audioUri ? { uri: params.audioUri } : { uri: '' });
   const playerStatus = useAudioPlayerStatus(player);
   const hasAudio = !!params.audioUri;
+  const hasVideo = !!params.videoUri;
+  const hasMedia = hasAudio || hasVideo;
 
   // Stable refs so PanResponder closures can reach current values
   const durationRef = useRef(state.duration);
@@ -57,6 +61,36 @@ export default function TimelineScreen() {
   playerRef.current = player;
   const audioReadyRef = useRef(false);
   audioReadyRef.current = hasAudio && playerStatus.isLoaded;
+
+  // ── Video playback (for video-only routines) ───────────────────────────────
+  const videoPlayer = useVideoPlayer(null, p => { p.loop = false; });
+  const videoPlayerRef = useRef(videoPlayer);
+  videoPlayerRef.current = videoPlayer;
+
+  useEffect(() => {
+    if (!params.videoUri) return;
+    videoPlayer.replace({ uri: params.videoUri });
+  }, [params.videoUri]);
+
+  useEffect(() => {
+    if (!hasVideo) return;
+    if (state.playing) { videoPlayer.play(); } else { videoPlayer.pause(); }
+  }, [state.playing]);
+
+  useEffect(() => {
+    if (!hasVideo) return;
+    videoPlayer.playbackRate = state.speed;
+  }, [state.speed, hasVideo]);
+
+  // Drive state.t from video when there's no audio
+  useEffect(() => {
+    if (!state.playing || !hasVideo || hasAudio) return;
+    const id = setInterval(() => {
+      dispatch({ type: 'SET_T', t: videoPlayerRef.current.currentTime });
+    }, 100);
+    return () => clearInterval(id);
+  }, [state.playing, hasVideo, hasAudio]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (hasAudio) setAudioModeAsync({ playsInSilentMode: true });
@@ -210,13 +244,17 @@ export default function TimelineScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const dragRef = useRef<{ startY: number; startTime: number; moved: boolean } | null>(null);
+  const sectionDragRef = useRef<{ startY: number; startTime: number; moved: boolean } | null>(null);
   const pxPerSecRef = useRef(state.pxPerSec);
   pxPerSecRef.current = state.pxPerSec;
   const cuesRef = useRef(state.cues);
   cuesRef.current = state.cues;
-  // PanResponders are created once per cue ID and reused — recreating them every render
+  const sectionsRef = useRef(state.sections);
+  sectionsRef.current = state.sections;
+  // PanResponders are created once per ID and reused — recreating them every render
   // causes React Native's gesture system to accumulate handlers and flicker.
   const cueRespondersRef = useRef<Record<string, ReturnType<typeof PanResponder.create>>>({});
+  const sectionRespondersRef = useRef<Record<string, ReturnType<typeof PanResponder.create>>>({});
 
   function getOrCreateCuePanResponder(cueId: string) {
     if (!cueRespondersRef.current[cueId]) {
@@ -248,6 +286,41 @@ export default function TimelineScreen() {
     return cueRespondersRef.current[cueId];
   }
 
+  function getOrCreateSectionPanResponder(sectionId: string) {
+    if (!sectionRespondersRef.current[sectionId]) {
+      sectionRespondersRef.current[sectionId] = PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 4,
+        onPanResponderGrant: (e) => {
+          const sec = sectionsRef.current.find(s => s.id === sectionId);
+          sectionDragRef.current = { startY: e.nativeEvent.pageY, startTime: sec?.time ?? 0, moved: false };
+        },
+        onPanResponderMove: (_, g) => {
+          if (!sectionDragRef.current) return;
+          if (Math.abs(g.dy) > 4) sectionDragRef.current.moved = true;
+          if (sectionDragRef.current.moved) {
+            const newTime = sectionDragRef.current.startTime + g.dy / pxPerSecRef.current;
+            dispatch({ type: 'RETIME_SECTION', id: sectionId, time: newTime });
+          }
+        },
+        onPanResponderRelease: () => {
+          if (!sectionDragRef.current) return;
+          if (!sectionDragRef.current.moved) {
+            const sec = sectionsRef.current.find(s => s.id === sectionId);
+            if (sec) {
+              setSectionEditTarget(sec);
+              setSectionName(sec.name);
+              setSectionTime(sec.time);
+              setSectionSheetOpen(true);
+            }
+          }
+          sectionDragRef.current = null;
+        },
+      });
+    }
+    return sectionRespondersRef.current[sectionId];
+  }
+
   const playedFrac = state.duration > 0 ? state.t / state.duration : 0;
   const playheadY = state.t * state.pxPerSec;
 
@@ -262,12 +335,14 @@ export default function TimelineScreen() {
         const t = (e.nativeEvent.locationX / TRACK_W) * durationRef.current;
         dispatch({ type: 'SET_T', t });
         if (audioReadyRef.current) playerRef.current.seekTo(t);
+        if (hasVideo) videoPlayerRef.current.seekBy(t - videoPlayerRef.current.currentTime);
       },
       onPanResponderMove: (e) => {
         const x = Math.max(0, Math.min(e.nativeEvent.locationX, TRACK_W));
         const t = (x / TRACK_W) * durationRef.current;
         dispatch({ type: 'SET_T', t });
         if (audioReadyRef.current) playerRef.current.seekTo(t);
+        if (hasVideo) videoPlayerRef.current.seekBy(t - videoPlayerRef.current.currentTime);
       },
     })
   ).current;
@@ -352,15 +427,17 @@ export default function TimelineScreen() {
 
           {/* Track content */}
           <View style={[styles.track, { height: trackH }]}>
-            {/* Section dividers */}
+            {/* Section dividers — drag to retime, tap to edit */}
             {state.sections.map(sec => {
               const y = sec.time * state.pxPerSec;
               const color = sectionColor(sec.name);
+              const panResponder = getOrCreateSectionPanResponder(sec.id);
               return (
-                <View key={sec.id} style={[styles.sectionDivider, { top: y }]}>
+                <View key={sec.id} style={[styles.sectionDivider, { top: y }]} {...panResponder.panHandlers}>
                   <View style={[styles.sectionLine, { borderColor: color }]} />
                   <View style={[styles.sectionChip, { backgroundColor: palette.paper }]}>
                     <Text style={[styles.sectionLabel, { color }]}>{sec.name}</Text>
+                    <Text style={[styles.sectionChipTime, { color }]}>{fmtTime(sec.time)}</Text>
                   </View>
                 </View>
               );
@@ -419,7 +496,7 @@ export default function TimelineScreen() {
 
       {/* Footer */}
       <View style={[styles.footer, { borderTopColor: 'rgba(43,39,34,0.09)', backgroundColor: palette.paper }]}>
-        {hasAudio && (
+        {hasMedia && (
           <TouchableOpacity
             style={[styles.playPauseBtn, { backgroundColor: palette.accent }]}
             onPress={() => dispatch({ type: 'TOGGLE_PLAY' })}
@@ -433,7 +510,7 @@ export default function TimelineScreen() {
         <TouchableOpacity
           style={[styles.footerOutlined, { borderColor: palette.ink }]}
           activeOpacity={0.7}
-          onPress={() => { setSectionName(''); setSectionTime(state.t); setSectionSheetOpen(true); }}
+          onPress={() => { setSectionEditTarget(null); setSectionName(''); setSectionTime(state.t); setSectionSheetOpen(true); }}
         >
           <Text style={[styles.footerOutlinedText, { color: palette.ink }]}>＋ Section</Text>
         </TouchableOpacity>
@@ -448,15 +525,22 @@ export default function TimelineScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Section Sheet */}
-      <Modal visible={sectionSheetOpen} transparent animationType="slide" onRequestClose={() => setSectionSheetOpen(false)}>
+      {/* Section Sheet — add or edit */}
+      <Modal
+        visible={sectionSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { setSectionSheetOpen(false); setSectionEditTarget(null); }}
+      >
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.sheetOverlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSectionSheetOpen(false)} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => { setSectionSheetOpen(false); setSectionEditTarget(null); }} />
           <View style={[styles.sheet, { backgroundColor: palette.paper }]}>
             <View style={[styles.sheetHandle, { backgroundColor: 'rgba(43,39,34,0.18)' }]} />
-            <Text style={[styles.sheetTitle, { color: palette.ink }]}>Add section</Text>
+            <Text style={[styles.sheetTitle, { color: palette.ink }]}>
+              {sectionEditTarget ? 'Edit section' : 'Add section'}
+            </Text>
 
-            {/* Time stepper */}
+            {/* Time stepper + set to now */}
             <View style={[styles.sheetRow, { borderColor: 'rgba(43,39,34,0.09)' }]}>
               <Text style={[styles.sheetRowLabel, { color: '#8f887d' }]}>Time</Text>
               <View style={styles.stepper}>
@@ -469,6 +553,11 @@ export default function TimelineScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            {hasMedia && (
+              <TouchableOpacity style={styles.setNowBtn} onPress={() => setSectionTime(state.t)} activeOpacity={0.7}>
+                <Text style={[styles.setNowBtnText, { color: palette.accent }]}>⏱ Set to {fmtTime(state.t)}</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Name input */}
             <Text style={[styles.sheetSectionLabel, { color: palette.accent }]}>NAME</Text>
@@ -481,30 +570,48 @@ export default function TimelineScreen() {
               autoFocus
             />
 
-            <TouchableOpacity
-              style={[styles.saveBtn, { backgroundColor: sectionName.trim() ? palette.ink : 'rgba(43,39,34,0.2)' }]}
-              onPress={() => {
-                if (!sectionName.trim()) return;
-                dispatch({ type: 'ADD_SECTION', name: sectionName.trim(), time: sectionTime });
-                setSectionSheetOpen(false);
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.saveBtnText, { color: palette.paper }]}>Add section</Text>
-            </TouchableOpacity>
+            <View style={styles.sheetFooter}>
+              {sectionEditTarget && (
+                <TouchableOpacity
+                  style={[styles.deleteBtn, { borderColor: 'rgba(43,39,34,0.22)' }]}
+                  onPress={() => {
+                    dispatch({ type: 'DELETE_SECTION', id: sectionEditTarget.id });
+                    setSectionSheetOpen(false);
+                    setSectionEditTarget(null);
+                  }}
+                >
+                  <Text style={[styles.deleteBtnText, { color: '#a85f6b' }]}>🗑</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.saveBtn, { backgroundColor: sectionName.trim() ? palette.ink : 'rgba(43,39,34,0.2)', flex: 1 }]}
+                onPress={() => {
+                  if (!sectionName.trim()) return;
+                  if (sectionEditTarget) dispatch({ type: 'DELETE_SECTION', id: sectionEditTarget.id });
+                  dispatch({ type: 'ADD_SECTION', name: sectionName.trim(), time: sectionTime });
+                  setSectionSheetOpen(false);
+                  setSectionEditTarget(null);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.saveBtnText, { color: palette.paper }]}>
+                  {sectionEditTarget ? 'Save section' : 'Add section'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
       {/* Cue Editor Sheet */}
       {state.sheetOpen && state.draft && (
-        <CueEditorSheet palette={palette} />
+        <CueEditorSheet palette={palette} hasMedia={hasMedia} />
       )}
     </SafeAreaView>
   );
 }
 
-function CueEditorSheet({ palette }: { palette: any }) {
+function CueEditorSheet({ palette, hasMedia }: { palette: any; hasMedia: boolean }) {
   const { state, dispatch } = useStore();
   const { cueTypeColor } = useTheme();
   const draft = state.draft!;
@@ -526,7 +633,7 @@ function CueEditorSheet({ palette }: { palette: any }) {
 
           <Text style={[styles.sheetTitle, { color: palette.ink }]}>Edit cue</Text>
 
-          {/* Time stepper */}
+          {/* Time stepper + set to now */}
           <View style={[styles.sheetRow, { borderColor: 'rgba(43,39,34,0.09)' }]}>
             <Text style={[styles.sheetRowLabel, { color: '#8f887d' }]}>Time</Text>
             <View style={styles.stepper}>
@@ -545,6 +652,15 @@ function CueEditorSheet({ palette }: { palette: any }) {
               </TouchableOpacity>
             </View>
           </View>
+          {hasMedia && (
+            <TouchableOpacity
+              style={styles.setNowBtn}
+              onPress={() => dispatch({ type: 'SET_DRAFT', draft: { time: state.t } })}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.setNowBtnText, { color: palette.accent }]}>⏱ Set to {fmtTime(state.t)}</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Type chips */}
           <Text style={[styles.sheetSectionLabel, { color: palette.accent }]}>TYPE</Text>
@@ -759,6 +875,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Newsreader_400Regular_Italic',
     fontSize: 14,
   },
+  sectionChipTime: {
+    fontFamily: 'WorkSans_400Regular',
+    fontSize: 9,
+    opacity: 0.65,
+    marginTop: 1,
+  },
   playhead: {
     position: 'absolute',
     left: 0,
@@ -944,6 +1066,8 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   sheetFooter: { flexDirection: 'row', gap: 12 },
+  setNowBtn: { alignSelf: 'flex-end', paddingVertical: 6, paddingHorizontal: 2, marginTop: -10, marginBottom: 12 },
+  setNowBtnText: { fontFamily: 'WorkSans_500Medium', fontSize: 13 },
   deleteBtn: {
     width: 48,
     height: 48,

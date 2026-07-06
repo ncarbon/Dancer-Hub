@@ -12,6 +12,7 @@ import {
   Modal,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import {
   createAudioPlayer,
   useAudioRecorder,
@@ -108,6 +109,47 @@ export default function ImportScreen() {
     }
   }
 
+  async function pickVideoFromGallery() {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log("[gallery] permission status:", status);
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "Allow access to your photo library to pick a video.",
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["videos"],
+        allowsEditing: false,
+        quality: 1,
+      });
+      console.log("[gallery] result canceled:", result.canceled);
+      if (result.canceled || !result.assets[0]) return;
+      const asset = result.assets[0];
+      const filename = asset.fileName ?? `video_${Date.now()}.mp4`;
+      await attachVideo(asset.uri, filename);
+    } catch (e: any) {
+      console.error("[gallery] error:", e);
+      const isICloud =
+        typeof e?.message === "string" && e.message.includes("3164");
+      if (isICloud) {
+        Alert.alert(
+          "Video not downloaded",
+          "This video is stored in iCloud and hasn't been downloaded to your device. Open it in the Photos app to download it first, or use \"Choose file\" to pick it from the Files app instead.",
+          [
+            { text: "Use file picker", onPress: pickVideoFile },
+            { text: "OK", style: "cancel" },
+          ],
+        );
+      } else {
+        Alert.alert("Could not load video", "Try a different file.");
+      }
+    }
+  }
+
   async function pickVideoFile() {
     const result = await DocumentPicker.getDocumentAsync({
       type: "video/*",
@@ -121,6 +163,7 @@ export default function ImportScreen() {
   function promptVideoSource() {
     if (videoLoading) return;
     Alert.alert("Add video", undefined, [
+      { text: "Choose from gallery", onPress: pickVideoFromGallery },
       { text: "Choose file", onPress: pickVideoFile },
       { text: "Cancel", style: "cancel" },
     ]);
@@ -285,7 +328,7 @@ export default function ImportScreen() {
                     ＋
                   </Text>
                   <Text style={[styles.mediaDropLabel, { color: "#8f887d" }]}>
-                    Drop video or pick file
+                    Gallery or file
                   </Text>
                 </>
               )}

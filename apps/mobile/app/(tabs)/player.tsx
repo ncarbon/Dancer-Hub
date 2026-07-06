@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   SafeAreaView, PanResponder, Dimensions, ActivityIndicator, Modal,
+  TextInput, KeyboardAvoidingView, Platform, LayoutAnimation, UIManager,
 } from 'react-native';
+
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
 import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { useTheme } from '@/lib/theme';
-import { useStore, fmtTime, currentSection, CueType, Count } from '@/lib/rehearseStore';
+import { useStore, fmtTime, currentSection, currentCue, nextCue, CueType, Count, Section, Cue } from '@/lib/rehearseStore';
 import { supabase } from '@/lib/supabase';
 import type { Routine, Section as DBSection, Cue as DBCue } from '@dancer-hub/shared';
 
@@ -20,15 +26,22 @@ const STYLES = [
 ];
 
 export default function PlayerScreen() {
-  const { palette, sectionColor } = useTheme();
+  const { palette, sectionColor, cueTypeColor } = useTheme();
   const { state, dispatch } = useStore();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
 
   const [routine, setRoutine] = useState<Routine | null>(null);
+  const [routineName, setRoutineName] = useState('');
   const [routineStyle, setRoutineStyle] = useState<string | null>(null);
-  const [stylePickerOpen, setStylePickerOpen] = useState(false);
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [draftStyle, setDraftStyle] = useState<string | null>(null);
+  const [playbackOpen, setPlaybackOpen] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(!!id);
 
   // Load routine from Supabase
@@ -45,6 +58,7 @@ export default function PlayerScreen() {
 
       const r = data as Routine & { sections: DBSection[]; cues: DBCue[] };
       setRoutine(r);
+      setRoutineName(r.name);
       setRoutineStyle(r.style ?? null);
 
       dispatch({
@@ -67,22 +81,43 @@ export default function PlayerScreen() {
         setAudioUrl(url.publicUrl);
       }
 
+      if (r.video_file_path) {
+        const { data: vUrl } = supabase.storage
+          .from('video-tracks')
+          .getPublicUrl(r.video_file_path);
+        setVideoUrl(vUrl.publicUrl);
+      }
+
       setLoading(false);
     }
     load();
   }, [id]);
 
-  async function updateStyle(s: string) {
-    const next = s === routineStyle ? null : s;
-    setRoutineStyle(next);
+  function openInfoModal() {
+    setDraftName(routineName);
+    setDraftStyle(routineStyle);
+    setInfoModalOpen(true);
+  }
+
+  async function saveRoutineInfo() {
+    setRoutineName(draftName);
+    setRoutineStyle(draftStyle);
+    setInfoModalOpen(false);
     if (routine?.id) {
-      await supabase.from('routines').update({ style: next }).eq('id', routine.id);
+      await supabase.from('routines').update({ name: draftName, style: draftStyle }).eq('id', routine.id);
     }
   }
 
   // ── Audio playback ─────────────────────────────────────────────────────────
   const player = useAudioPlayer(audioUrl ? { uri: audioUrl } : { uri: '' });
   const playerStatus = useAudioPlayerStatus(player);
+
+  // ── Video playback ─────────────────────────────────────────────────────────
+  const videoPlayer = useVideoPlayer(null, p => { p.loop = false; });
+  const videoPlayerRef = useRef(videoPlayer);
+  videoPlayerRef.current = videoPlayer;
+  const videoUrlRef = useRef<string | null>(null);
+  videoUrlRef.current = videoUrl;
 
   const durationRef = useRef(state.duration);
   durationRef.current = state.duration;
@@ -96,6 +131,8 @@ export default function PlayerScreen() {
   const focusedRef = useRef(true);
   const playingRef = useRef(state.playing);
   playingRef.current = state.playing;
+  const sectionStripRef = useRef<ScrollView>(null);
+  const sectionOffsetsRef = useRef<Record<string, number>>({});
 
   // Pause this screen's audio when navigating away; resume if needed on return.
   // Prevents the shared state.playing flag from triggering both screens' audio.
@@ -114,6 +151,42 @@ export default function PlayerScreen() {
     if (audioUrl) setAudioModeAsync({ playsInSilentMode: true });
   }, [audioUrl]);
 
+  // Load video source when URL becomes available
+  useEffect(() => {
+    if (!videoUrl) return;
+    videoPlayer.replace({ uri: videoUrl });
+  }, [videoUrl]);
+
+  // Play/pause: store → video (mirrors audio logic)
+  useEffect(() => {
+    if (!videoUrl) return;
+    if (state.playing) {
+      const ms = delayMsRef.current;
+      if (ms > 0) {
+        setTimeout(() => { videoPlayerRef.current.play(); }, ms);
+      } else {
+        videoPlayer.play();
+      }
+    } else {
+      videoPlayer.pause();
+    }
+  }, [state.playing]);
+
+  // Speed: store → video
+  useEffect(() => {
+    if (!videoUrl) return;
+    videoPlayer.playbackRate = state.speed;
+  }, [state.speed, videoUrl]);
+
+  // Position sync from video when there's no audio
+  useEffect(() => {
+    if (!state.playing || !videoUrl || !!audioUrl) return;
+    const id = setInterval(() => {
+      dispatch({ type: 'SET_T', t: videoPlayerRef.current.currentTime });
+    }, 100);
+    return () => clearInterval(id);
+  }, [state.playing, videoUrl, audioUrl]);
+
   // Play/pause: store → audio (with optional start delay)
   useEffect(() => {
     if (!audioReadyRef.current || !focusedRef.current) return;
@@ -131,6 +204,37 @@ export default function PlayerScreen() {
       }
       playerRef.current.pause();
     }
+  }, [state.playing]);
+
+  // Countdown when there's a start delay
+  useEffect(() => {
+    if (state.playing && delayMsRef.current > 0) {
+      const totalSec = Math.ceil(delayMsRef.current / 1000);
+      setCountdown(totalSec);
+      let remaining = totalSec;
+      countdownIntervalRef.current = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(countdownIntervalRef.current!);
+          countdownIntervalRef.current = null;
+          setCountdown(null);
+        } else {
+          setCountdown(remaining);
+        }
+      }, 1000);
+    } else {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      setCountdown(null);
+    }
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    };
   }, [state.playing]);
 
   // Speed + pitch lock: store → audio
@@ -159,6 +263,21 @@ export default function PlayerScreen() {
   // ──────────────────────────────────────────────────────────────────────────
 
   const sec = currentSection(state);
+  const cue = currentCue(state);
+  const nxt = nextCue(state);
+
+  // Auto-scroll the section strip to keep the active section visible
+  useEffect(() => {
+    if (!sec) return;
+    const x = sectionOffsetsRef.current[sec.id] ?? 0;
+    sectionStripRef.current?.scrollTo({ x: Math.max(0, x - 22), animated: false });
+  }, [sec?.id]);
+
+  const handleSectionPress = useCallback((time: number) => {
+    dispatch({ type: 'SET_T', t: time });
+    if (audioReadyRef.current) playerRef.current.seekTo(time);
+    if (videoUrlRef.current) videoPlayerRef.current.seekBy(time - videoPlayerRef.current.currentTime);
+  }, []);
   const playedFrac = state.duration > 0 ? state.t / state.duration : 0;
 
   const waveResponder = useRef(
@@ -168,12 +287,14 @@ export default function PlayerScreen() {
         const t = (e.nativeEvent.locationX / WAVE_W) * durationRef.current;
         dispatch({ type: 'SET_T', t });
         if (audioReadyRef.current) playerRef.current.seekTo(t);
+        if (videoUrlRef.current) videoPlayerRef.current.seekBy(t - videoPlayerRef.current.currentTime);
       },
       onPanResponderMove: (e) => {
         const x = Math.max(0, Math.min(e.nativeEvent.locationX, WAVE_W));
         const t = (x / WAVE_W) * durationRef.current;
         dispatch({ type: 'SET_T', t });
         if (audioReadyRef.current) playerRef.current.seekTo(t);
+        if (videoUrlRef.current) videoPlayerRef.current.seekBy(t - videoPlayerRef.current.currentTime);
       },
     })
   ).current;
@@ -206,7 +327,16 @@ export default function PlayerScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.paper }]}>
       {/* Video area */}
       <View style={styles.videoArea}>
-        <HatchView />
+        {videoUrl ? (
+          <VideoView
+            player={videoPlayer}
+            style={[StyleSheet.absoluteFill, state.mirror && styles.videoMirror]}
+            contentFit="cover"
+            nativeControls={false}
+          />
+        ) : (
+          <HatchView />
+        )}
         <View style={styles.videoTopRow}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={[styles.backChev, { color: palette.paper }]}>‹</Text>
@@ -214,6 +344,9 @@ export default function PlayerScreen() {
           <Text style={[styles.videoTitle, { color: palette.paper }]} numberOfLines={1}>
             {routine?.name ?? 'Practice'}
           </Text>
+          <TouchableOpacity onPress={openInfoModal} style={styles.editIconBtn} activeOpacity={0.7}>
+            <Text style={styles.editIconText}>✎</Text>
+          </TouchableOpacity>
         </View>
         {sec && (
           <View style={[styles.sectionPill, { backgroundColor: secColor }]}>
@@ -226,7 +359,39 @@ export default function PlayerScreen() {
         >
           <Text style={styles.mirrorText}>⇄</Text>
         </TouchableOpacity>
+
+        {/* Cue overlay on video */}
+        {videoUrl && cue && (
+          <View style={styles.videoCueOverlay}>
+            <View style={[styles.videoCueChip, { backgroundColor: cueTypeColor(cue.type) }]}>
+              <Text style={styles.videoCueChipText}>{cue.type.toUpperCase()}</Text>
+            </View>
+            {!!cue.note && (
+              <Text style={styles.videoCueNote} numberOfLines={1}>{cue.note}</Text>
+            )}
+          </View>
+        )}
+
+        {countdown !== null && (
+          <View style={styles.countdownOverlay}>
+            <Text style={styles.countdownLabel}>Starting in</Text>
+            <Text style={styles.countdownNumber}>{countdown}</Text>
+          </View>
+        )}
       </View>
+
+      {/* Section strip and cue banner sit outside the ScrollView so their
+          re-renders and height changes don't trigger a full scroll-content relayout. */}
+      {state.sections.length > 0 && (
+        <SectionStrip
+          sections={state.sections}
+          activeSectionId={sec?.id}
+          onSectionPress={handleSectionPress}
+          stripRef={sectionStripRef}
+          offsetsRef={sectionOffsetsRef}
+        />
+      )}
+      {!videoUrl && <CueBanner cue={cue} nxt={nxt} hasCues={state.cues.length > 0} />}
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Waveform */}
@@ -256,19 +421,10 @@ export default function PlayerScreen() {
         <View style={styles.transport}>
           <TransportBtn
             onPress={() => {
-              const before = state.sections.filter(s => s.time < state.t - 0.5).sort((a, b) => b.time - a.time);
-              if (before.length) {
-                dispatch({ type: 'SET_T', t: before[0].time });
-                if (audioReadyRef.current) playerRef.current.seekTo(before[0].time);
-              }
-            }}
-            label="⏮" palette={palette}
-          />
-          <TransportBtn
-            onPress={() => {
               const t = Math.max(0, state.t - 10);
               dispatch({ type: 'SET_T', t });
               if (audioReadyRef.current) playerRef.current.seekTo(t);
+              if (videoUrlRef.current) videoPlayerRef.current.seekBy(t - videoPlayerRef.current.currentTime);
             }}
             label="−10" palette={palette} small
           />
@@ -287,77 +443,75 @@ export default function PlayerScreen() {
               const t = Math.min(state.duration, state.t + 10);
               dispatch({ type: 'SET_T', t });
               if (audioReadyRef.current) playerRef.current.seekTo(t);
+              if (videoUrlRef.current) videoPlayerRef.current.seekBy(t - videoPlayerRef.current.currentTime);
             }}
             label="+10" palette={palette} small
           />
-          <TransportBtn
+        </View>
+
+        {/* Playback settings — collapsible */}
+        <View style={styles.controlCard}>
+          <TouchableOpacity
+            style={styles.controlRow}
             onPress={() => {
-              const after = state.sections.filter(s => s.time > state.t + 0.5).sort((a, b) => a.time - b.time);
-              if (after.length) {
-                dispatch({ type: 'SET_T', t: after[0].time });
-                if (audioReadyRef.current) playerRef.current.seekTo(after[0].time);
-              }
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setPlaybackOpen(o => !o);
             }}
-            label="⏭" palette={palette}
-          />
-        </View>
-
-        {/* Style */}
-        <View style={styles.controlCard}>
-          <View style={styles.controlRow}>
-            <Text style={[styles.controlLabel, { color: palette.ink }]}>Style</Text>
-            <TouchableOpacity onPress={() => setStylePickerOpen(true)} activeOpacity={0.7} style={styles.styleRow}>
-              {routineStyle ? (
-                <View style={[styles.styleTag, { backgroundColor: palette.accent }]}>
-                  <Text style={[styles.styleTagText, { color: palette.paper }]}>{routineStyle}</Text>
-                </View>
-              ) : (
-                <Text style={[styles.controlSub, { color: '#8f887d' }]}>None</Text>
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.controlLabel, { color: palette.ink }]}>Playback settings</Text>
+            <View style={styles.playbackSummary}>
+              {!playbackOpen && (
+                <Text style={[styles.controlSub, { color: '#8f887d' }]}>
+                  {state.speed.toFixed(2)}× · {state.delayMs / 1000}s delay
+                </Text>
               )}
-              <Text style={[styles.editLink, { color: palette.accent }]}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Speed */}
-        <View style={[styles.controlCard, { shadowColor: 'rgba(90,80,66,0.08)' }]}>
-          <View style={styles.controlRow}>
-            <Text style={[styles.controlLabel, { color: palette.ink }]}>Speed</Text>
-            <Text style={[styles.controlValue, { color: palette.ink }]}>{state.speed.toFixed(2)}×</Text>
-          </View>
-          <View style={[styles.sliderTrack, { backgroundColor: 'rgba(43,39,34,0.14)' }]} {...speedResponder.panHandlers}>
-            <View style={[styles.sliderFill, { width: `${((state.speed - 0.25) / 1.25) * 100}%`, backgroundColor: palette.accent }]} />
-            <View style={[styles.sliderThumb, { left: `${((state.speed - 0.25) / 1.25) * 100}%`, backgroundColor: palette.accent }]} />
-          </View>
-          <View style={styles.sliderBtns}>
-            <TouchableOpacity onPress={() => dispatch({ type: 'SET_SPEED', speed: Math.max(0.25, state.speed - 0.05) })}>
-              <Text style={[styles.stepBtn, { color: palette.ink }]}>−</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => dispatch({ type: 'TOGGLE_PITCH_LOCK' })}>
-              <Text style={[styles.controlSub, { color: state.pitchLock ? palette.accent : '#8f887d' }]}>
-                Pitch lock · {state.pitchLock ? 'On' : 'Off'} — music stays in key
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => dispatch({ type: 'SET_SPEED', speed: Math.min(1.5, state.speed + 0.05) })}>
-              <Text style={[styles.stepBtn, { color: palette.ink }]}>＋</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Start delay */}
-        <View style={styles.controlCard}>
-          <View style={styles.controlRow}>
-            <Text style={[styles.controlLabel, { color: palette.ink }]}>Start delay</Text>
-            <View style={styles.stepper}>
-              <TouchableOpacity style={[styles.stepperBtn, { backgroundColor: '#eae5da' }]} onPress={() => dispatch({ type: 'SET_DELAY', delayMs: state.delayMs - 1000 })}>
-                <Text style={[styles.stepBtnText, { color: palette.ink }]}>−</Text>
-              </TouchableOpacity>
-              <Text style={[styles.stepperValue, { color: palette.ink }]}>{state.delayMs / 1000}s</Text>
-              <TouchableOpacity style={[styles.stepperBtn, { backgroundColor: '#eae5da' }]} onPress={() => dispatch({ type: 'SET_DELAY', delayMs: state.delayMs + 1000 })}>
-                <Text style={[styles.stepBtnText, { color: palette.ink }]}>＋</Text>
-              </TouchableOpacity>
+              <Text style={[styles.chevron, { color: palette.accent }]}>{playbackOpen ? '˄' : '˅'}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
+
+          {playbackOpen && (
+            <View style={styles.playbackBody}>
+              <View style={[styles.sectionDivider, { backgroundColor: 'rgba(43,39,34,0.08)' }]} />
+
+              <View style={styles.controlRow}>
+                <Text style={[styles.controlLabel, { color: palette.ink }]}>Speed</Text>
+                <Text style={[styles.controlValue, { color: palette.ink }]}>{state.speed.toFixed(2)}×</Text>
+              </View>
+              <View style={[styles.sliderTrack, { backgroundColor: 'rgba(43,39,34,0.14)' }]} {...speedResponder.panHandlers}>
+                <View style={[styles.sliderFill, { width: `${((state.speed - 0.25) / 1.25) * 100}%`, backgroundColor: palette.accent }]} />
+                <View style={[styles.sliderThumb, { left: `${((state.speed - 0.25) / 1.25) * 100}%`, backgroundColor: palette.accent }]} />
+              </View>
+              <View style={styles.sliderBtns}>
+                <TouchableOpacity onPress={() => dispatch({ type: 'SET_SPEED', speed: Math.max(0.25, state.speed - 0.05) })}>
+                  <Text style={[styles.stepBtn, { color: palette.ink }]}>−</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => dispatch({ type: 'TOGGLE_PITCH_LOCK' })}>
+                  <Text style={[styles.controlSub, { color: state.pitchLock ? palette.accent : '#8f887d' }]}>
+                    Pitch lock · {state.pitchLock ? 'On' : 'Off'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => dispatch({ type: 'SET_SPEED', speed: Math.min(1.5, state.speed + 0.05) })}>
+                  <Text style={[styles.stepBtn, { color: palette.ink }]}>＋</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={[styles.sectionDivider, { backgroundColor: 'rgba(43,39,34,0.08)', marginTop: 12 }]} />
+
+              <View style={[styles.controlRow, { marginTop: 12 }]}>
+                <Text style={[styles.controlLabel, { color: palette.ink }]}>Start delay</Text>
+                <View style={styles.stepper}>
+                  <TouchableOpacity style={[styles.stepperBtn, { backgroundColor: '#eae5da' }]} onPress={() => dispatch({ type: 'SET_DELAY', delayMs: state.delayMs - 1000 })}>
+                    <Text style={[styles.stepBtnText, { color: palette.ink }]}>−</Text>
+                  </TouchableOpacity>
+                  <Text style={[styles.stepperValue, { color: palette.ink }]}>{state.delayMs / 1000}s</Text>
+                  <TouchableOpacity style={[styles.stepperBtn, { backgroundColor: '#eae5da' }]} onPress={() => dispatch({ type: 'SET_DELAY', delayMs: state.delayMs + 1000 })}>
+                    <Text style={[styles.stepBtnText, { color: palette.ink }]}>＋</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Open Timeline */}
@@ -380,35 +534,50 @@ export default function PlayerScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      <Modal visible={stylePickerOpen} transparent animationType="fade" onRequestClose={() => setStylePickerOpen(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setStylePickerOpen(false)}>
-          <TouchableOpacity style={[styles.modalSheet, { backgroundColor: palette.paper }]} activeOpacity={1}>
-            <Text style={[styles.modalTitle, { color: palette.ink }]}>Dance style</Text>
-            <View style={styles.chipRow}>
-              {STYLES.map((s) => {
-                const active = routineStyle === s;
-                return (
-                  <TouchableOpacity
-                    key={s}
-                    style={[styles.chip, {
-                      backgroundColor: active ? palette.accent : 'transparent',
-                      borderColor: active ? palette.accent : 'rgba(43,39,34,0.25)',
-                    }]}
-                    onPress={() => { updateStyle(s); setStylePickerOpen(false); }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.chipText, { color: active ? palette.paper : palette.ink }]}>{s}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            {routineStyle && (
-              <TouchableOpacity onPress={() => { setRoutineStyle(null); supabase.from('routines').update({ style: null }).eq('id', routine?.id ?? ''); setStylePickerOpen(false); }} activeOpacity={0.7}>
-                <Text style={[styles.clearStyle, { color: '#8f887d' }]}>Clear style</Text>
-              </TouchableOpacity>
-            )}
+      <Modal visible={infoModalOpen} transparent animationType="slide" onRequestClose={() => setInfoModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setInfoModalOpen(false)}>
+            <TouchableOpacity style={[styles.modalSheet, { backgroundColor: palette.paper }]} activeOpacity={1}>
+              <View style={styles.modalTitleRow}>
+                <Text style={[styles.modalTitle, { color: palette.ink }]}>Routine info</Text>
+                <TouchableOpacity onPress={saveRoutineInfo} activeOpacity={0.7} style={[styles.saveBtn, { backgroundColor: palette.accent }]}>
+                  <Text style={[styles.saveBtnText, { color: palette.paper }]}>Save</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={[styles.fieldLabel, { color: palette.ink }]}>Name</Text>
+              <TextInput
+                style={[styles.nameInput, { color: palette.ink, borderColor: 'rgba(43,39,34,0.2)', backgroundColor: '#f5f2ec' }]}
+                value={draftName}
+                onChangeText={setDraftName}
+                placeholder="Routine name"
+                placeholderTextColor="#8f887d"
+                autoCorrect={false}
+                returnKeyType="done"
+              />
+
+              <Text style={[styles.fieldLabel, { color: palette.ink }]}>Dance style</Text>
+              <View style={styles.chipRow}>
+                {STYLES.map((s) => {
+                  const active = draftStyle === s;
+                  return (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.chip, {
+                        backgroundColor: active ? palette.accent : 'transparent',
+                        borderColor: active ? palette.accent : 'rgba(43,39,34,0.25)',
+                      }]}
+                      onPress={() => setDraftStyle(active ? null : s)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.chipText, { color: active ? palette.paper : palette.ink }]}>{s}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -438,9 +607,101 @@ function TransportBtn({ onPress, label, palette, small }: {
   );
 }
 
+const SectionStrip = memo(function SectionStrip({ sections, activeSectionId, onSectionPress, stripRef, offsetsRef }: {
+  sections: Section[];
+  activeSectionId: string | undefined;
+  onSectionPress: (time: number) => void;
+  stripRef: React.RefObject<ScrollView>;
+  offsetsRef: React.MutableRefObject<Record<string, number>>;
+}) {
+  const { palette, sectionColor } = useTheme();
+  return (
+    <ScrollView
+      ref={stripRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.sectionStrip}
+      style={styles.sectionStripScroll}
+    >
+      {sections.map(s => {
+        const active = activeSectionId === s.id;
+        const color = sectionColor(s.name);
+        return (
+          <TouchableOpacity
+            key={s.id}
+            onLayout={e => { offsetsRef.current[s.id] = e.nativeEvent.layout.x; }}
+            style={[styles.sectionNavChip, { borderColor: color, backgroundColor: active ? color : 'transparent' }]}
+            onPress={() => onSectionPress(s.time)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.sectionNavChipText, { color: active ? palette.paper : color }]}>
+              {s.name}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+});
+
+const CueBanner = memo(function CueBanner({ cue, nxt, hasCues }: { cue: Cue | null; nxt: Cue | null; hasCues: boolean }) {
+  const { palette, cueTypeColor } = useTheme();
+  if (!hasCues) return null;
+  if (!cue) return <View style={cueStyles.placeholder} />;
+  const typeColor = cueTypeColor(cue.type);
+  const nxtColor = nxt ? cueTypeColor(nxt.type) : null;
+  return (
+    <View style={cueStyles.card}>
+      <View style={cueStyles.topRow}>
+        <View style={cueStyles.left}>
+          <View style={[cueStyles.typeChip, { backgroundColor: typeColor }]}>
+            <Text style={cueStyles.typeChipText}>{cue.type.toUpperCase()}</Text>
+          </View>
+          {!!cue.count && cue.count !== '—' && (
+            <Text style={[cueStyles.count, { color: palette.ink }]}>{cue.count}</Text>
+          )}
+        </View>
+        {nxt && (
+          <View style={[cueStyles.nextChip, { borderColor: nxtColor! }]}>
+            <Text style={cueStyles.nextLabel}>Next · </Text>
+            <Text style={[cueStyles.nextType, { color: nxtColor! }]}>{nxt.type.toUpperCase()}</Text>
+          </View>
+        )}
+      </View>
+      {!!cue.note && (
+        <Text style={cueStyles.note} numberOfLines={1}>{cue.note}</Text>
+      )}
+    </View>
+  );
+});
+
+const cueStyles = StyleSheet.create({
+  card: { marginHorizontal: 22, marginTop: 12, backgroundColor: '#faf8f4', borderRadius: 12, padding: 12, shadowColor: '#5a5042', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 1 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  left: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  typeChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  typeChipText: { fontFamily: 'WorkSans_600SemiBold', fontSize: 10, color: '#fff', letterSpacing: 0.9 },
+  count: { fontFamily: 'Newsreader_400Regular', fontSize: 16 },
+  nextChip: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
+  nextLabel: { fontFamily: 'WorkSans_400Regular', fontSize: 11, color: '#8f887d' },
+  nextType: { fontFamily: 'WorkSans_600SemiBold', fontSize: 10, letterSpacing: 0.9 },
+  note: { fontFamily: 'WorkSans_400Regular', fontSize: 13, marginTop: 4, color: '#6b655b' },
+  placeholder: { marginHorizontal: 22, marginTop: 12, height: 46 },
+});
+
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  videoArea: { height: 174, backgroundColor: '#e2dccf', overflow: 'hidden', position: 'relative' },
+  videoArea: { height: 220, backgroundColor: '#e2dccf', overflow: 'hidden', position: 'relative' },
+  videoMirror: { transform: [{ scaleX: -1 }] },
+  videoCueOverlay: {
+    position: 'absolute', bottom: 10, left: 60, right: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.52)', borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 6,
+  },
+  videoCueChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
+  videoCueChipText: { fontFamily: 'WorkSans_600SemiBold', fontSize: 9, color: '#fff', letterSpacing: 0.9 },
+  videoCueNote: { fontFamily: 'WorkSans_400Regular', fontSize: 12, color: 'rgba(255,255,255,0.9)', flex: 1 },
   videoTopRow: { position: 'absolute', top: 16, left: 16, right: 16, flexDirection: 'row', alignItems: 'center' },
   backBtn: { marginRight: 10 },
   backChev: { fontSize: 28 },
@@ -449,8 +710,15 @@ const styles = StyleSheet.create({
   sectionPillText: { fontFamily: 'WorkSans_500Medium', fontSize: 11, letterSpacing: 0.5 },
   mirrorBtn: { position: 'absolute', bottom: 12, left: 16, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   mirrorText: { fontSize: 16, color: '#fff' },
+  countdownOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(35,42,37,0.6)' },
+  countdownLabel: { fontFamily: 'WorkSans_400Regular', fontSize: 12, color: 'rgba(255,255,255,0.65)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 },
+  countdownNumber: { fontFamily: 'Newsreader_400Regular', fontSize: 80, color: '#fff', lineHeight: 84 },
   scroll: { paddingBottom: 32 },
-  waveContainer: { marginHorizontal: 22, marginTop: 20, height: 56, borderRadius: 8, overflow: 'hidden', borderWidth: 1 },
+  sectionStripScroll: { marginTop: 12 },
+  sectionStrip: { paddingHorizontal: 22, paddingVertical: 2, gap: 8 },
+  sectionNavChip: { borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
+  sectionNavChipText: { fontFamily: 'WorkSans_500Medium', fontSize: 12 },
+  waveContainer: { marginHorizontal: 22, marginTop: 16, height: 56, borderRadius: 8, overflow: 'hidden', borderWidth: 1 },
   wave: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, gap: 2, position: 'relative' },
   waveBar: { width: 3, borderRadius: 2, flex: 1 },
   playhead: { position: 'absolute', top: 0, bottom: 0, width: 2 },
@@ -472,17 +740,23 @@ const styles = StyleSheet.create({
   sliderThumb: { position: 'absolute', top: -8, width: 20, height: 20, borderRadius: 10, marginLeft: -10 },
   sliderBtns: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stepBtn: { fontSize: 20, width: 32, textAlign: 'center' },
-  styleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  styleTag: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
-  styleTagText: { fontFamily: 'WorkSans_500Medium', fontSize: 12 },
-  editLink: { fontFamily: 'WorkSans_500Medium', fontSize: 13 },
+  editIconBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  editIconText: { fontSize: 18, color: 'rgba(255,255,255,0.85)' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(43,39,34,0.45)', justifyContent: 'flex-end' },
   modalSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, gap: 16 },
-  modalTitle: { fontFamily: 'Newsreader_400Regular', fontSize: 20, marginBottom: 4 },
-  clearStyle: { fontFamily: 'WorkSans_400Regular', fontSize: 13, textAlign: 'center', paddingTop: 4 },
+  modalTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  modalTitle: { fontFamily: 'Newsreader_400Regular', fontSize: 20 },
+  saveBtn: { borderRadius: 20, paddingHorizontal: 18, paddingVertical: 8 },
+  saveBtnText: { fontFamily: 'WorkSans_600SemiBold', fontSize: 13 },
+  fieldLabel: { fontFamily: 'WorkSans_500Medium', fontSize: 12, marginBottom: -8 },
+  nameInput: { fontFamily: 'WorkSans_400Regular', fontSize: 15, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1.5, borderRadius: 24, paddingHorizontal: 14, paddingVertical: 7 },
   chipText: { fontFamily: 'WorkSans_400Regular', fontSize: 13 },
+  playbackSummary: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  playbackBody: { marginTop: 12, gap: 0 },
+  sectionDivider: { height: 1, marginBottom: 12 },
+  chevron: { fontFamily: 'WorkSans_500Medium', fontSize: 16, lineHeight: 20 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepperBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   stepBtnText: { fontSize: 18 },

@@ -192,6 +192,8 @@ PODS:
     - ExpoModulesCore
   - ExpoGlassEffect (56.0.4):
     - ExpoModulesCore
+  - ExpoImagePicker (56.0.19):
+    - ExpoModulesCore
   - ExpoKeepAwake (56.0.3):
     - ExpoModulesCore
   - ExpoLinking (7.0.5):
@@ -242,6 +244,8 @@ PODS:
     - ExpoModulesCore
     - ExpoModulesWorklets
     - React-RCTFabric
+  - ExpoVideo (56.1.4):
+    - ExpoModulesCore
   - EXUpdatesInterface (56.0.2):
     - ExpoModulesCore
   - FBLazyVector (0.85.3)
@@ -2425,6 +2429,7 @@ DEPENDENCIES:
   - "ExpoFileSystem (from `../../../node_modules/.pnpm/expo-file-system@56.0.8_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@react-native+met_db4mpu7ovatl3zzl6lnxxdmtke/node_modules/expo-file-system/ios/ExpoFileSystem.podspec`)"
   - "ExpoFont (from `../../../node_modules/.pnpm/expo-font@56.0.7_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@react-native+metro-conf_t4ldlfmtza7gq4rr43wfurugaq/node_modules/expo-font/ios/ExpoFont.podspec`)"
   - "ExpoGlassEffect (from `../../../node_modules/.pnpm/expo-glass-effect@56.0.4_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@react-native+me_7xx5umttmuegmnodnclbd3xxja/node_modules/expo-glass-effect/ios`)"
+  - "ExpoImagePicker (from `../../../node_modules/.pnpm/expo-image-picker@56.0.19_expo@56.0.13/node_modules/expo-image-picker/ios`)"
   - "ExpoKeepAwake (from `../../../node_modules/.pnpm/expo-keep-awake@56.0.3_expo@56.0.13_react@19.2.3/node_modules/expo-keep-awake/ios`)"
   - "ExpoLinking (from `../../../node_modules/.pnpm/expo-linking@7.0.5_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@react-native+metro-co_l44qbhddhxyd5t2wkwu55nzzpi/node_modules/expo-linking/ios`)"
   - "ExpoLogBox (from `../../../node_modules/.pnpm/@expo+log-box@56.0.14_@expo+dom-webview@56.0.5_expo@56.0.13_react-native@0.85.3_@babel+core@7_f77mjsfwhv5rlqouhq22emscoi/node_modules/@expo/log-box`)"
@@ -2435,6 +2440,7 @@ DEPENDENCIES:
   - "ExpoRouter (from `../../../node_modules/.pnpm/expo-router@56.2.12_w7porj2jkucl3uerxn7es2gzi4/node_modules/expo-router/ios`)"
   - "ExpoSymbols (from `../../../node_modules/.pnpm/expo-symbols@56.0.6_expo-font@56.0.7_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@rea_tf2rzanztubzrswuyfhujch6bu/node_modules/expo-symbols/ios`)"
   - "ExpoUI (from `../../../node_modules/.pnpm/@expo+ui@56.0.19_@babel+core@7.29.7_@types+react-dom@18.3.7_@types+react@19.2.17__@types+reac_6frgvezipu3zlbpmppszkb3rwi/node_modules/@expo/ui/ios`)"
+  - "ExpoVideo (from `../../../node_modules/.pnpm/expo-video@56.1.4_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@react-native+metro-con_bchs2kduqki4wvbtsuqmqdtrqe/node_modules/expo-video/ios/ExpoVideo.podspec`)"
   - "EXUpdatesInterface (from `../../../node_modules/.pnpm/expo-updates-interface@56.0.2_expo@56.0.13/node_modules/expo-updates-interface/ios`)"
   - "FBLazyVector (from `../../../node_modules/.pnpm/react-native@0.85.3_@babel+core@7.29.7_@react-native+metro-config@0.86.0_@babel+core@7.29.7___4wojicf73qbqmxhmngchs77rp4/node_modules/react-native/Libraries/FBLazyVector`)"
   - "hermes-engine (from `../../../node_modules/.pnpm/react-native@0.85.3_@babel+core@7.29.7_@react-native+metro-config@0.86.0_@babel+core@7.29.7___4wojicf73qbqmxhmngchs77rp4/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)"
@@ -2550,6 +2556,8 @@ EXTERNAL SOURCES:
     :podspec: "../../../node_modules/.pnpm/expo-font@56.0.7_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@react-native+metro-conf_t4ldlfmtza7gq4rr43wfurugaq/node_modules/expo-font/ios/ExpoFont.podspec"
   ExpoGlassEffect:
     :path: "../../../node_modules/.pnpm/expo-glass-effect@56.0.4_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@react-native+me_7xx5umttmuegmnodnclbd3xxja/node_modules/expo-glass-effect/ios"
+  ExpoImagePicker:
+    :path: "../../../node_modules/.pnpm/expo-image-picker@56.0.19_expo@56.0.13/node_modules/expo-image-picker/ios"
   ExpoKeepAwake:
     :path: "../../../node_modules/.pnpm/expo-keep-awake@56.0.3_expo@56.0.13_react@19.2.3/node_modules/expo-keep-awake/ios"
   ExpoLinking:
@@ -2570,6 +2578,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/.pnpm/expo-symbols@56.0.6_expo-font@56.0.7_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@rea_tf2rzanztubzrswuyfhujch6bu/node_modules/expo-symbols/ios"
   ExpoUI:
     :path: "../../../node_modules/.pnpm/@expo+ui@56.0.19_@babel+core@7.29.7_@types+react-dom@18.3.7_@types+react@19.2.17__@types+reac_6frgvezipu3zlbpmppszkb3rwi/node_modules/@expo/ui/ios"
+  ExpoVideo:
+    :podspec: "../../../node_modules/.pnpm/expo-video@56.1.4_expo@56.0.13_react-native@0.85.3_@babel+core@7.29.7_@react-native+metro-con_bchs2kduqki4wvbtsuqmqdtrqe/node_modules/expo-video/ios/ExpoVideo.podspec"
   EXUpdatesInterface:
     :path: "../../../node_modules/.pnpm/expo-updates-interface@56.0.2_expo@56.0.13/node_modules/expo-updates-interface/ios"
   FBLazyVector:
@@ -2752,6 +2762,7 @@ SPEC CHECKSUMS:
   ExpoFileSystem: 9dc04ec1e11bc3c7b965d7feb2de12c789755c7b
   ExpoFont: 274487aa78f8c65d6551e2558eca3ec6ce3432ce
   ExpoGlassEffect: 7d4233dc0727ee2b28dd757eda70e1b6abf662fd
+  ExpoImagePicker: f4ce1db4d779c6ab47b377de47abae1b4e82802d
   ExpoKeepAwake: 359c47a1d9ccc3a3c519bca6e39562cce230c5bb
   ExpoLinking: 8d12bee174ba0cdf31239706578e29e74a417402
   ExpoLogBox: cdad5c9402a186574fb5924ea91df1f08ba9a98a
@@ -2762,6 +2773,7 @@ SPEC CHECKSUMS:
   ExpoRouter: 53f9afee4aa2449efe5ef710a52e1a4d41c5f4ee
   ExpoSymbols: 377747de25bcb1ab68ec68f23d81fb81d43eae83
   ExpoUI: f2b640c7375210a5f518c82f6425c13e2ca2f9a8
+  ExpoVideo: 292b8c6be12bacf0b2e5a697276788280cdccdfb
   EXUpdatesInterface: 25408a97d682355eb9fb37e5aa6e22caece1881f
   FBLazyVector: 24e62c765683b8d89006a88a2c8f5cf019f0074d
   hermes-engine: 37741800cf2fcae688f04d6fb3334312a9631402
