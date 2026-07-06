@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   SafeAreaView, PanResponder, Dimensions, ActivityIndicator, Modal,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 import { useTheme } from '@/lib/theme';
 import { useStore, fmtTime, currentSection, CueType, Count } from '@/lib/rehearseStore';
@@ -93,6 +93,22 @@ export default function PlayerScreen() {
   const delayMsRef = useRef(state.delayMs);
   delayMsRef.current = state.delayMs;
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusedRef = useRef(true);
+  const playingRef = useRef(state.playing);
+  playingRef.current = state.playing;
+
+  // Pause this screen's audio when navigating away; resume if needed on return.
+  // Prevents the shared state.playing flag from triggering both screens' audio.
+  useFocusEffect(
+    useCallback(() => {
+      focusedRef.current = true;
+      if (audioReadyRef.current && playingRef.current) playerRef.current.play();
+      return () => {
+        focusedRef.current = false;
+        if (audioReadyRef.current) playerRef.current.pause();
+      };
+    }, [])
+  );
 
   useEffect(() => {
     if (audioUrl) setAudioModeAsync({ playsInSilentMode: true });
@@ -100,7 +116,7 @@ export default function PlayerScreen() {
 
   // Play/pause: store → audio (with optional start delay)
   useEffect(() => {
-    if (!audioReadyRef.current) return;
+    if (!audioReadyRef.current || !focusedRef.current) return;
     if (state.playing) {
       const ms = delayMsRef.current;
       if (ms > 0) {
@@ -238,7 +254,16 @@ export default function PlayerScreen() {
 
         {/* Transport */}
         <View style={styles.transport}>
-          <TransportBtn onPress={() => dispatch({ type: 'PREV_SECTION' })} label="⏮" palette={palette} />
+          <TransportBtn
+            onPress={() => {
+              const before = state.sections.filter(s => s.time < state.t - 0.5).sort((a, b) => b.time - a.time);
+              if (before.length) {
+                dispatch({ type: 'SET_T', t: before[0].time });
+                if (audioReadyRef.current) playerRef.current.seekTo(before[0].time);
+              }
+            }}
+            label="⏮" palette={palette}
+          />
           <TransportBtn
             onPress={() => {
               const t = Math.max(0, state.t - 10);
@@ -265,7 +290,16 @@ export default function PlayerScreen() {
             }}
             label="+10" palette={palette} small
           />
-          <TransportBtn onPress={() => dispatch({ type: 'NEXT_SECTION' })} label="⏭" palette={palette} />
+          <TransportBtn
+            onPress={() => {
+              const after = state.sections.filter(s => s.time > state.t + 0.5).sort((a, b) => a.time - b.time);
+              if (after.length) {
+                dispatch({ type: 'SET_T', t: after[0].time });
+                if (audioReadyRef.current) playerRef.current.seekTo(after[0].time);
+              }
+            }}
+            label="⏭" palette={palette}
+          />
         </View>
 
         {/* Style */}

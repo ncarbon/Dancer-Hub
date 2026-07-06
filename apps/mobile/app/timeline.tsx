@@ -62,6 +62,7 @@ export default function TimelineScreen() {
     if (hasAudio) setAudioModeAsync({ playsInSilentMode: true });
   }, [hasAudio]);
 
+
   // Play/pause: store → audio
   useEffect(() => {
     if (!audioReadyRef.current) return;
@@ -78,11 +79,15 @@ export default function TimelineScreen() {
     player.setPlaybackRate(state.speed, state.pitchLock ? 'medium' : 'low');
   }, [state.speed, state.pitchLock, playerStatus.isLoaded]);
 
-  // Audio position → store time (source of truth while playing)
+  // Audio position → store time: poll every 100ms to avoid 60fps re-renders
   useEffect(() => {
-    if (!state.playing || !audioReadyRef.current) return;
-    dispatch({ type: 'SET_T', t: playerStatus.currentTime });
-  }, [playerStatus.currentTime]);
+    if (!state.playing || !hasAudio) return;
+    const id = setInterval(() => {
+      if (!audioReadyRef.current) return;
+      dispatch({ type: 'SET_T', t: playerRef.current.currentTime });
+    }, 100);
+    return () => clearInterval(id);
+  }, [state.playing, hasAudio]);
 
   // Stop at end
   useEffect(() => {
@@ -204,41 +209,50 @@ export default function TimelineScreen() {
   const trackH = state.duration * state.pxPerSec;
   const scrollRef = useRef<ScrollView>(null);
 
-  // Keep a ref for drag start info per cue
   const dragRef = useRef<{ startY: number; startTime: number; moved: boolean } | null>(null);
+  const pxPerSecRef = useRef(state.pxPerSec);
+  pxPerSecRef.current = state.pxPerSec;
+  const cuesRef = useRef(state.cues);
+  cuesRef.current = state.cues;
+  // PanResponders are created once per cue ID and reused — recreating them every render
+  // causes React Native's gesture system to accumulate handlers and flicker.
+  const cueRespondersRef = useRef<Record<string, ReturnType<typeof PanResponder.create>>>({});
+
+  function getOrCreateCuePanResponder(cueId: string) {
+    if (!cueRespondersRef.current[cueId]) {
+      cueRespondersRef.current[cueId] = PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 4,
+        onPanResponderGrant: (e) => {
+          const cue = cuesRef.current.find(c => c.id === cueId);
+          dragRef.current = { startY: e.nativeEvent.pageY, startTime: cue?.time ?? 0, moved: false };
+        },
+        onPanResponderMove: (e, g) => {
+          if (!dragRef.current) return;
+          if (Math.abs(g.dy) > 4) dragRef.current.moved = true;
+          if (dragRef.current.moved) {
+            const newTime = dragRef.current.startTime + g.dy / pxPerSecRef.current;
+            dispatch({ type: 'RETIME_CUE', id: cueId, time: newTime });
+          }
+        },
+        onPanResponderRelease: (_, g) => {
+          if (!dragRef.current) return;
+          if (!dragRef.current.moved) {
+            const cue = cuesRef.current.find(c => c.id === cueId);
+            if (cue) dispatch({ type: 'OPEN_SHEET', cue });
+          }
+          dragRef.current = null;
+        },
+      });
+    }
+    return cueRespondersRef.current[cueId];
+  }
 
   const playedFrac = state.duration > 0 ? state.t / state.duration : 0;
   const playheadY = state.t * state.pxPerSec;
 
   // Ruler ticks every 30s
   const ticks = Array.from({ length: Math.floor(state.duration / 30) + 1 }, (_, i) => i * 30);
-
-  function makeCuePanResponder(cueId: string, cueTime: number) {
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 4,
-      onPanResponderGrant: (e) => {
-        dragRef.current = { startY: e.nativeEvent.pageY, startTime: cueTime, moved: false };
-      },
-      onPanResponderMove: (e, g) => {
-        if (!dragRef.current) return;
-        if (Math.abs(g.dy) > 4) dragRef.current.moved = true;
-        if (dragRef.current.moved) {
-          const newTime = dragRef.current.startTime + g.dy / state.pxPerSec;
-          dispatch({ type: 'RETIME_CUE', id: cueId, time: newTime });
-        }
-      },
-      onPanResponderRelease: (_, g) => {
-        if (!dragRef.current) return;
-        if (!dragRef.current.moved) {
-          // Tap → open sheet
-          const cue = state.cues.find(c => c.id === cueId);
-          if (cue) dispatch({ type: 'OPEN_SHEET', cue });
-        }
-        dragRef.current = null;
-      },
-    });
-  }
 
   // Scrubber pan
   const scrubResponder = useRef(
@@ -365,7 +379,7 @@ export default function TimelineScreen() {
               const y = cue.time * state.pxPerSec;
               const typeColor = cueTypeColor(cue.type);
               const isSelected = cue.id === state.selectedCueId;
-              const panResponder = makeCuePanResponder(cue.id, cue.time);
+              const panResponder = getOrCreateCuePanResponder(cue.id);
 
               return (
                 <View
