@@ -8,6 +8,7 @@ node_modules
 dist
 build
 .expo
+*.tsbuildinfo
 
 # env files
 .env
@@ -31,5 +32,6 @@ pnpm-debug.log*
 *.orig.*
 web-build/
 
-supabase*
+supabase/.temp
+supabase/.branches
 
