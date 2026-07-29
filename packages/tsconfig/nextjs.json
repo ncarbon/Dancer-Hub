@@ -9,6 +9,8 @@
     "moduleResolution": "bundler",
     "jsx": "preserve",
     "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
     "plugins": [{ "name": "next" }]
   }
 }
