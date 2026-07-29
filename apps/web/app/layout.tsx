@@ -25,6 +25,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
         <main className="max-w-4xl mx-auto px-6 py-8">{children}</main>
+        <footer className="max-w-4xl mx-auto px-6 py-8 text-center text-xs text-gray-300">
+          Tempo &amp; key data powered by{' '}
+          <a
+            href="https://getsongbpm.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-gray-400"
+          >
+            GetSongBPM
+          </a>
+        </footer>
       </body>
     </html>
   );
