@@ -64,11 +64,49 @@ export default function TrackPage() {
         ← Back
       </button>
 
-      <h1 className="text-2xl font-bold mb-2">{track.title}</h1>
-      <p className="text-gray-400 text-sm mb-8">
-        Uploaded {new Date(track.created_at).toLocaleDateString()}
-        {track.duration_seconds ? ` · ${formatDuration(track.duration_seconds)}` : ''}
-      </p>
+      <div className="flex items-start gap-4 mb-8">
+        {track.album_art_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={track.album_art_url}
+            alt=""
+            className="w-20 h-20 rounded-xl object-cover shrink-0"
+          />
+        ) : null}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold mb-1">{track.title}</h1>
+          {track.artist && <p className="text-gray-600 text-sm mb-1">{track.artist}</p>}
+          <p className="text-gray-400 text-sm">
+            Uploaded {new Date(track.created_at).toLocaleDateString()}
+            {track.duration_seconds ? ` · ${formatDuration(track.duration_seconds)}` : ''}
+            {track.tempo_bpm != null ? ` · ${track.tempo_bpm} BPM` : ''}
+            {track.musical_key ? ` · ${track.musical_key}` : ''}
+          </p>
+          {track.spotify_url && (
+            <a
+              href={track.spotify_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-sm text-brand-600 hover:underline mt-2"
+            >
+              Open in Spotify
+            </a>
+          )}
+          {(track.tempo_bpm != null || track.musical_key) && (
+            <p className="text-xs text-gray-400 mt-2">
+              Tempo &amp; key data powered by{' '}
+              <a
+                href="https://getsongbpm.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-gray-500"
+              >
+                GetSongBPM
+              </a>
+            </p>
+          )}
+        </div>
+      </div>
 
       {audioUrl && <AudioPlayer src={audioUrl} />}
 

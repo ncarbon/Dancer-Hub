@@ -79,22 +79,37 @@ export interface SpotifyMatchCandidate {
   artist: string;
   albumArtUrl: string | null;
   spotifyUrl: string;
+  /** ~30s MP3 preview from Spotify; null when unavailable */
+  previewUrl: string | null;
 }
 
-export interface GetSongBpmMatch {
+export type TempoProvider = 'getsongbpm' | 'acousticbrainz' | 'preview';
+
+export interface TempoMatch {
   title: string;
   artist: string;
   tempoBpm: number | null;
   musicalKey: string | null;
   songUrl: string | null;
+  /** Which backend produced this tempo estimate */
+  source?: TempoProvider;
+  /** Beats per bar, e.g. 4 for 4/4 — from GetSongBPM or Spotify when available */
+  timeSignature?: number | null;
+  /** 0–1 danceability score (GetSongBPM uses 0–100; normalized here) */
+  danceability?: number | null;
 }
+
+/** @deprecated Prefer TempoMatch — kept for existing imports */
+export type GetSongBpmMatch = TempoMatch;
 
 export type TrackMetadataStatus = 'matched' | 'ambiguous' | 'not_found';
 
 // GET /api/track-metadata?title=  -> provider "spotify", candidates: SpotifyMatchCandidate[]
-// GET /api/track-metadata?title=&artist=  -> provider "getsongbpm", candidates: GetSongBpmMatch[]
+// GET /api/track-metadata?title=&artist=  -> tempo providers (getsongbpm | acousticbrainz | preview)
 export interface TrackMetadataResponse {
-  provider: 'spotify' | 'getsongbpm';
+  provider: 'spotify' | TempoProvider;
   status: TrackMetadataStatus;
-  candidates: SpotifyMatchCandidate[] | GetSongBpmMatch[];
+  candidates: SpotifyMatchCandidate[] | TempoMatch[];
+  /** Playable ~30s MP3 when looking up tempo (Deezer/Spotify preview) */
+  audioPreviewUrl?: string | null;
 }

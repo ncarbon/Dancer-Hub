@@ -12,16 +12,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-gray-50 text-gray-900">
         <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <nav className="max-w-4xl mx-auto flex items-center justify-between">
-            <Link href="/tracks" className="text-xl font-bold text-brand-600">
+          <nav className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+            <Link href="/tracks" className="text-xl font-bold text-brand-600 shrink-0">
               Dancer Hub
             </Link>
-            <Link
-              href="/tracks/upload"
-              className="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
-            >
-              Upload Track
-            </Link>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link
+                href="/lookup"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 px-2 py-2"
+              >
+                Song Lookup
+              </Link>
+              <Link
+                href="/tracks/upload"
+                className="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
+              >
+                Upload Track
+              </Link>
+            </div>
           </nav>
         </header>
         <main className="max-w-4xl mx-auto px-6 py-8">{children}</main>

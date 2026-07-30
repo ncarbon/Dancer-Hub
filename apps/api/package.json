@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@dancer-hub/shared": "workspace:*",
+    "audio-decode": "^3.11.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "music-tempo": "^1.0.3"
   },
   "devDependencies": {
     "@dancer-hub/tsconfig": "workspace:*",
