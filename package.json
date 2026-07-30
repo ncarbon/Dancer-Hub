@@ -9,6 +9,7 @@
     "build": "turbo build",
     "dev:web": "turbo dev --filter=web",
     "dev:mobile": "turbo dev --filter=mobile",
+    "dev:api": "turbo dev --filter=api",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "type-check": "turbo type-check",

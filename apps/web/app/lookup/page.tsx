@@ -2,12 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { fetchTrackMetadata } from '@/lib/api';
-import SpotifyPreviewButton, {
-  playSharedPreview,
-  stopSharedPreview,
-  unlockPreviewAudio,
-} from '@/components/SpotifyPreviewButton';
+import SpotifyPreviewButton, { stopSharedPreview } from '@/components/SpotifyPreviewButton';
 import StyleDemo from '@/components/StyleDemo';
+import Tooltip from '@/components/Tooltip';
 import {
   matchDanceStyles,
   type DanceStyleMatch,
@@ -154,9 +151,6 @@ export default function SongLookupPage() {
     setError(null);
     setLoading(true);
 
-    // Unlock audio during the click so playback after the BPM request is allowed.
-    unlockPreviewAudio();
-
     try {
       const result = await fetchTrackMetadata({
         title: candidate.title,
@@ -178,10 +172,6 @@ export default function SongLookupPage() {
       );
       setAudioPreviewUrl(preview);
       setBpmNotFound(candidates.length === 0);
-
-      if (preview) {
-        void playSharedPreview(preview).catch(() => undefined);
-      }
 
       if (candidates.length === 1) {
         setSelectedBpm(candidates[0]);
@@ -206,13 +196,9 @@ export default function SongLookupPage() {
   }
 
   function chooseBpm(candidate: TempoMatch) {
-    unlockPreviewAudio();
     setSelectedBpm(candidate);
     setManualBpm('');
     setStep('results');
-    if (audioPreviewUrl) {
-      void playSharedPreview(audioPreviewUrl).catch(() => undefined);
-    }
   }
 
   function reset() {
@@ -330,16 +316,39 @@ export default function SongLookupPage() {
               <p className="font-semibold text-gray-900 truncate">{selectedSpotify.title}</p>
               <p className="text-sm text-gray-500 truncate">{selectedSpotify.artist}</p>
               {selectedBpm?.tempoBpm != null && (
-                <p className="text-sm text-brand-600 font-medium mt-1">
-                  {selectedBpm.tempoBpm} BPM
-                  {selectedBpm.timeSignature ? ` · ${selectedBpm.timeSignature}/4` : ''}
-                  {selectedBpm.danceability != null
-                    ? ` · danceability ${Math.round(selectedBpm.danceability * 100)}`
-                    : ''}
-                  {selectedBpm.musicalKey ? ` · ${selectedBpm.musicalKey}` : ''}
+                <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-brand-600 font-medium mt-1">
+                  <Tooltip label="Tempo of the track, in beats per minute.">
+                    {selectedBpm.tempoBpm} BPM
+                  </Tooltip>
+                  {selectedBpm.timeSignature != null && (
+                    <>
+                      <span className="text-gray-300">·</span>
+                      <Tooltip label="Time signature — how many beats are grouped per measure.">
+                        {selectedBpm.timeSignature}/4
+                      </Tooltip>
+                    </>
+                  )}
+                  {selectedBpm.danceability != null && (
+                    <>
+                      <span className="text-gray-300">·</span>
+                      <Tooltip label="Danceability (0–100): how suitable the track is for dancing, based on tempo, rhythm stability, and beat strength.">
+                        danceability {Math.round(selectedBpm.danceability * 100)}
+                      </Tooltip>
+                    </>
+                  )}
+                  {selectedBpm.musicalKey && (
+                    <>
+                      <span className="text-gray-300">·</span>
+                      <Tooltip label="Detected musical key of the track.">
+                        {selectedBpm.musicalKey}
+                      </Tooltip>
+                    </>
+                  )}
                   <span className="text-gray-400 font-normal">
-                    {' '}
-                    · {tempoSourceLabel(tempoProvider, selectedBpm)}
+                    ·{' '}
+                    <Tooltip label="Where this tempo estimate came from.">
+                      {tempoSourceLabel(tempoProvider, selectedBpm)}
+                    </Tooltip>
                   </span>
                 </p>
               )}
@@ -383,27 +392,43 @@ export default function SongLookupPage() {
               </p>
             ) : (
               <ul className="space-y-3">
-                {styleMatches.map((style) => (
+                {styleMatches.map((style, index) => {
+                  const topFit = styleMatches[0].fit;
+                  const matchPercent = topFit > 0 ? Math.round((style.fit / topFit) * 100) : 0;
+                  return (
                   <li
                     key={style.id}
                     className="border border-gray-200 rounded-xl p-4 bg-white"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-gray-900">{style.name}</p>
-                        <p className="text-sm text-brand-600 mt-0.5">Count: {style.countLabel}</p>
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <span className="shrink-0 mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900">{style.name}</p>
+                          <p className="text-sm text-brand-600 mt-0.5">Count: {style.countLabel}</p>
+                        </div>
                       </div>
                       <span className="shrink-0 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
                         {style.bpmMin}–{style.bpmMax} BPM
                       </span>
                     </div>
-                    <StyleDemo
-                      name={style.name}
-                      countLabel={style.countLabel}
-                      demoUrl={style.demoUrl}
-                      demoPosterUrl={style.demoPosterUrl}
-                      demoCredit={style.demoCredit}
-                    />
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <Tooltip label="How closely this style matches the song's tempo, meter, and groove — relative to the top match below.">
+                        <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
+                          {matchPercent}% match
+                        </span>
+                      </Tooltip>
+                      <div className="h-1.5 flex-1 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-brand-500"
+                          style={{ width: `${matchPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                    <StyleDemo countLabel={style.countLabel} />
                     <p className="text-sm text-gray-600 mt-2">{style.musicNotes}</p>
                     {style.matchReasons && style.matchReasons.length > 0 && (
                       <p className="text-xs text-gray-400 mt-1">
@@ -414,7 +439,8 @@ export default function SongLookupPage() {
                       <p className="text-xs text-gray-400 mt-2">{style.tip}</p>
                     )}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </div>

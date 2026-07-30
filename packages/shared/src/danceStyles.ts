@@ -27,15 +27,6 @@ export interface DanceStyleProfile {
   musicNotes: string;
   /** Extra guidance shown in the UI */
   tip?: string;
-  /**
-   * Short looping demo (mp4/webm/gif) under the web app's public folder,
-   * e.g. `/demos/hustle.mp4`. Omit until the asset is ready.
-   */
-  demoUrl?: string;
-  /** Optional still frame while the demo loads */
-  demoPosterUrl?: string;
-  /** Attribution shown under the demo */
-  demoCredit?: string;
 }
 
 export interface DanceStyleMatch extends DanceStyleProfile {
@@ -62,13 +53,12 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     bpmMin: 115,
     bpmMax: 126,
     bpmSweetSpot: 117,
-    rankWeight: 1.2,
+    rankWeight: 1.2, // boosted so it beats samba (wider range)
     preferredTimeSignatures: [4],
     danceabilityBias: 'high',
     countLabel: '& 1 2 3',
     musicNotes: 'Pop, disco, and some house',
     tip: 'Needs a clear 4-count pulse. House works when the groove isn’t too swung or broken.',
-    demoUrl: '/demos/hustle.mp4',
   },
   {
     id: 'bachata',
@@ -80,7 +70,6 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     danceabilityBias: 'high',
     countLabel: '1 2 3 4 (tap)',
     musicNotes: 'Bachata, romantic pop, some R&B',
-    demoUrl: '/demos/bachata.mp4',
   },
   {
     id: 'salsa',
@@ -93,7 +82,6 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     countLabel: '1 2 3 4 5 6 7 8',
     musicNotes: 'Salsa, mambo, Latin jazz',
     tip: 'Tempo is often felt in half-time relative to the written BPM.',
-    demoUrl: '/demos/salsa.mp4',
   },
   {
     id: 'kizomba',
@@ -106,7 +94,6 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     danceabilityBias: 'medium',
     countLabel: 'slow 1 2 3 4',
     musicNotes: 'Kizomba, zouk, slower Afro-Latin',
-    demoUrl: '/demos/kizomba.mp4',
   },
   {
     id: 'reggaeton',
@@ -118,7 +105,6 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     danceabilityBias: 'high',
     countLabel: '1 & 2 & (dembow)',
     musicNotes: 'Reggaeton, Latin urban, some dembow pop',
-    demoUrl: '/demos/reggaeton.mp4',
   },
   {
     id: 'samba',
@@ -133,7 +119,6 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     countLabel: 'a 1 a 2',
     musicNotes: 'Brazilian samba, carnival, Latin ballroom samba music',
     tip: 'Syncopation makes samba feel faster than the BPM suggests — straight pop/disco is usually a better hustle fit.',
-    demoUrl: '/demos/samba.mp4',
   },
   {
     id: 'hip-hop',
@@ -146,20 +131,64 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     countLabel: '1 2 3 4 (or double-time)',
     musicNotes: 'Hip hop, R&B, trap',
     tip: 'Many tracks sit ~140–180 BPM but are danced half-time (~70–90).',
-    demoUrl: '/demos/hip-hop.mp4',
   },
   {
-    id: 'jazz',
-    name: 'Jazz',
-    bpmMin: 90,
-    bpmMax: 160,
-    bpmSweetSpot: 120,
-    rankWeight: 0.85,
+    id: 'funk',
+    name: 'Funk',
+    bpmMin: 85,
+    bpmMax: 125,
+    bpmSweetSpot: 105,
     preferredTimeSignatures: [4],
-    danceabilityBias: 'medium',
-    countLabel: '1 2 3 4 5 6 7 8',
-    musicNotes: 'Jazz standards, musical theatre, upbeat pop',
-    demoUrl: '/demos/jazz.mp4',
+    danceabilityBias: 'high',
+    countLabel: '1 2 3 4 (syncopated)',
+    musicNotes: 'Classic and street funk, boogie, P-funk, funky disco',
+    tip: 'Groove and syncopation matter more than raw tempo — a strong on-the-one hit reads as funk across a wide BPM range.',
+  },
+  {
+    id: 'house',
+    name: 'House',
+    bpmMin: 118,
+    bpmMax: 130,
+    bpmSweetSpot: 124,
+    preferredTimeSignatures: [4],
+    danceabilityBias: 'high',
+    countLabel: '1 2 3 4 (four-on-the-floor)',
+    musicNotes: 'House, tech house, club remixes',
+  },
+  {
+    id: 'deep-house',
+    name: 'Deep House',
+    bpmMin: 118,
+    bpmMax: 124,
+    bpmSweetSpot: 121,
+    rankWeight: 0.9,
+    preferredTimeSignatures: [4],
+    danceabilityBias: 'high',
+    countLabel: '1 2 3 4 (laid-back four-on-the-floor)',
+    musicNotes: 'Deep house, soulful house, lounge/club sets',
+    tip: 'Slower, moodier feel than mainstream house even at a similar BPM — go by groove, not just the number.',
+  },
+  {
+    id: 'afrobeats',
+    name: 'Afrobeats',
+    bpmMin: 95,
+    bpmMax: 115,
+    bpmSweetSpot: 105,
+    preferredTimeSignatures: [4],
+    danceabilityBias: 'high',
+    countLabel: '1 2 3 4 (log-drum groove)',
+    musicNotes: 'Afrobeats, Afropop, amapiano-adjacent',
+  },
+  {
+    id: 'dancehall',
+    name: 'Dancehall',
+    bpmMin: 85,
+    bpmMax: 110,
+    bpmSweetSpot: 95,
+    preferredTimeSignatures: [4],
+    danceabilityBias: 'high',
+    countLabel: '1 2 3 4 (riddim bounce)',
+    musicNotes: 'Dancehall, reggae fusion, Afro-dancehall',
   },
   {
     id: 'ballroom',
@@ -173,7 +202,6 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     countLabel: 'varies by dance',
     musicNotes: 'Foxtrot, waltz, cha-cha, and other ballroom tempos',
     tip: 'Each ballroom dance has its own narrower tempo — treat this as a broad starting point.',
-    demoUrl: '/demos/ballroom.mp4',
   },
   {
     id: 'ballet',
@@ -187,7 +215,6 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     countLabel: 'phrase-based',
     musicNotes: 'Classical, lyrical pop, cinematic',
     tip: 'Compatibility is more about phrasing and accents than a strict BPM.',
-    demoUrl: '/demos/ballet.mp4',
   },
   {
     id: 'contemporary',
@@ -201,7 +228,6 @@ export const DANCE_STYLES: DanceStyleProfile[] = [
     countLabel: 'phrase-based',
     musicNotes: 'Cinematic, indie, ambient, lyrical',
     tip: 'Wide tempo range — musicality and section changes matter more than BPM alone.',
-    demoUrl: '/demos/contemporary.mp4',
   },
 ];
 
