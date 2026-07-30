@@ -7,13 +7,16 @@ import { trackMetadataRouter } from './routes/trackMetadata';
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
-const allowedOrigin = process.env.ALLOWED_WEB_ORIGIN;
+const allowedOrigins = (process.env.ALLOWED_WEB_ORIGIN ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-if (!allowedOrigin) {
+if (allowedOrigins.length === 0) {
   throw new Error('ALLOWED_WEB_ORIGIN is not set');
 }
 
-app.use(cors({ origin: allowedOrigin }));
+app.use(cors({ origin: allowedOrigins }));
 app.use('/api/track-metadata', trackMetadataRouter);
 
 app.listen(port, () => {

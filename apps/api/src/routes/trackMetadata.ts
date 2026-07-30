@@ -1,16 +1,19 @@
 import { Router } from 'express';
 import type { TrackMetadataResponse } from '@dancer-hub/shared';
 import { searchSpotifyTracks } from '../services/spotify';
-import { searchGetSongBpm } from '../services/getSongBpm';
+import { lookupTempo } from '../services/tempoLookup';
 
 export const trackMetadataRouter: Router = Router();
 
 // GET /api/track-metadata?title=          -> Spotify candidates (step 1)
-// GET /api/track-metadata?title=&artist=  -> GetSongBPM candidates (step 2, after
-//                                             the user confirms a Spotify match)
+// GET /api/track-metadata?title=&artist=  -> tempo candidates with fallbacks:
+//   GetSongBPM → AcousticBrainz → Deezer preview analysis
+// Optional: &spotifyTrackId= to try Spotify audio-features enrichment
 trackMetadataRouter.get('/', async (req, res) => {
   const title = typeof req.query.title === 'string' ? req.query.title.trim() : '';
   const artist = typeof req.query.artist === 'string' ? req.query.artist.trim() : '';
+  const spotifyTrackId =
+    typeof req.query.spotifyTrackId === 'string' ? req.query.spotifyTrackId.trim() : '';
 
   if (!title) {
     return res.status(400).json({ error: 'title query param is required' });
@@ -18,11 +21,12 @@ trackMetadataRouter.get('/', async (req, res) => {
 
   try {
     if (artist) {
-      const candidates = await searchGetSongBpm(title, artist);
+      const result = await lookupTempo(title, artist, spotifyTrackId || undefined);
       const response: TrackMetadataResponse = {
-        provider: 'getsongbpm',
-        status: candidates.length === 0 ? 'not_found' : candidates.length === 1 ? 'matched' : 'ambiguous',
-        candidates,
+        provider: result.provider,
+        status: result.status,
+        candidates: result.candidates,
+        audioPreviewUrl: result.audioPreviewUrl,
       };
       return res.json(response);
     }
