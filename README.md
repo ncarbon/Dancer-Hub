@@ -10,6 +10,14 @@ The web app also includes **Song Lookup**: search Spotify for a track, resolve i
 
 ## Screenshots
 
+### Web
+
+| Homepage | Song Lookup | Results |
+|---|---|---|
+| ![Homepage](shared-assets/homepage.png) | ![Song Lookup](shared-assets/songlookup.png) | ![Results](shared-assets/song_results.png) |
+
+## Mobile
+
 | Library | Player | Timeline Editor |
 |---|---|---|
 | ![Routines](shared-assets/routines.jpg) | ![Player](shared-assets/player.jpg) | ![Editor](shared-assets/editor.jpg) |
@@ -97,8 +105,6 @@ pnpm dev:web
 - Web: [http://localhost:3000](http://localhost:3000)
 - API: [http://localhost:4000](http://localhost:4000)
 - Song Lookup: [http://localhost:3000/lookup](http://localhost:3000/lookup)
-
-If you see `EADDRINUSE` on port 4000, an old API process is still running — stop it, then start `apps/api` again.
 
 ### Attribution
 
