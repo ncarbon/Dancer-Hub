@@ -35,9 +35,6 @@ importers:
       music-tempo:
         specifier: ^1.0.3
         version: 1.0.3
-      web-audio-beat-detector:
-        specifier: ^8.2.38
-        version: 8.2.38
     devDependencies:
       '@dancer-hub/tsconfig':
         specifier: workspace:*
@@ -1818,10 +1815,6 @@ packages:
     resolution: {integrity: sha512-E9Bl1FGGDS81H/mKvaoPq0iQ8uT3qTBe6XWjipOo5kYrhLMAbjD7hREAVle0YJFahZOVbztxTdkwi0VBDJutSA==}
     engines: {node: '>=14'}
 
-  automation-events@7.1.19:
-    resolution: {integrity: sha512-cD+TLhJTI0q4AI3ktd353lrGZiVa9AchowSDzQzzGjSoYe22js4vlS32VUtWuaulghi1Yq0KYNWKk9wWuGymPA==}
-    engines: {node: '>=18.2.0'}
-
   autoprefixer@10.5.2:
     resolution: {integrity: sha512-rD5t5DwOjJdmSORcTq64j8MawTC+tbQ+HHqjR4NDumamy/ambn1UJrlKL+KdwujWxMkFjPM3pPHOEA9tl4767Q==}
     engines: {node: ^10 || ^12 || >=14}
@@ -1925,9 +1918,6 @@ packages:
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
-
-  broker-factory@3.1.15:
-    resolution: {integrity: sha512-ko+aWvgNuP49meGrdjUu7rC+Y+Wai3cCPxP3xWwHsHfehFjOh5ZQM2yC4gEB2UddeZ/YXhm0K1eG/L6fxym2Og==}
 
   browserslist@4.28.4:
     resolution: {integrity: sha512-MTc8i/x9jBQd1iMw2CFGS+rwMa07eYjLR0CCTLDACl9xhxy+nIs3KeML/biicXtk9JrZ6dnnTatmc7ErPXIxqw==}
@@ -2504,10 +2494,6 @@ packages:
   fast-glob@3.3.3:
     resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
     engines: {node: '>=8.6.0'}
-
-  fast-unique-numbers@9.0.27:
-    resolution: {integrity: sha512-nDA9ADeINN8SA2u2wCtU+siWFTTDqQR37XvgPIDDmboWQeExz7X0mImxuaN+kJddliIqy2FpVRmnvRZ+j8i1/A==}
-    engines: {node: '>=18.2.0'}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
@@ -3694,9 +3680,6 @@ packages:
   standard-navigation@0.0.5:
     resolution: {integrity: sha512-YAmzwAiiQVocZxO/VGPFiQHcu5pKiz09QIGC0MK6aRMoa3E0QkoTQgcqJr7ZZ3OMiNhu4DkaGElFI5htjOIDbw==}
 
-  standardized-audio-context@25.3.77:
-    resolution: {integrity: sha512-Ki9zNz6pKcC5Pi+QPjPyVsD9GwJIJWgryji0XL9cAJXMGyn+dPOf6Qik1AHei0+UNVcc4BOCa0hWLBzlwqsW/A==}
-
   statuses@1.5.0:
     resolution: {integrity: sha512-OpZ3zP+jT1PI7I8nemJX4AKmAX070ZkYPVWV/AaKTJl+tXCTGyVdC1a4SL8RUQYEwk/f34ZX8UTykN68FwrqAA==}
     engines: {node: '>= 0.6'}
@@ -3958,15 +3941,6 @@ packages:
   wcwidth@1.0.1:
     resolution: {integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==}
 
-  web-audio-beat-detector-broker@5.0.16:
-    resolution: {integrity: sha512-yDe0qSey8db3cuKZLmvLXUZh8TxLFsLBPxDEVpYylOY7q2R42vougkAfQ3OpF4qDiHBdjE0uisyItHnWpztUpQ==}
-
-  web-audio-beat-detector-worker@6.0.14:
-    resolution: {integrity: sha512-HM9HuqPd/7++orFk10FuNBiHjoqTGaEIpPPnxA9g8ue1XKN7eQ/jU7P5WX2CsfEYsa9RT+v7R+ocjQrYeDRmcQ==}
-
-  web-audio-beat-detector@8.2.38:
-    resolution: {integrity: sha512-oU1KxkofcjqFpzwCcgfb0QktFEQmFYflYwcGlIJtwl5yBScPbZrFrp6lucgtGfL7AJ2xogQf/3dYB8gBuDEG2Q==}
-
   webidl-conversions@5.0.0:
     resolution: {integrity: sha512-VlZwKPCkYKxQgeSbH5EyngOmRp7Ww7I9rQLERETtf5ofd9pGeswWiOtogpEO850jziPRarreGxn5QIiTqpb2wA==}
     engines: {node: '>=8'}
@@ -3985,9 +3959,6 @@ packages:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
     hasBin: true
-
-  worker-factory@7.0.50:
-    resolution: {integrity: sha512-hhwc0G+sFwM4qBuhJIUBn2p1Jf8v/FwmLUANBf/Q+Lt2uI8mfIZQhXaZQACodQD4R7Zp6cn/6702bIvNn2puJQ==}
 
   wrap-ansi@7.0.0:
     resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
@@ -5649,9 +5620,7 @@ snapshots:
       metro-runtime: 0.84.4
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native/normalize-colors@0.85.3': {}
 
@@ -5939,11 +5908,6 @@ snapshots:
 
   audio-type@2.4.2: {}
 
-  automation-events@7.1.19:
-    dependencies:
-      '@babel/runtime': 7.29.7
-      tslib: 2.8.1
-
   autoprefixer@10.5.2(postcss@8.5.15):
     dependencies:
       browserslist: 4.28.4
@@ -6103,13 +6067,6 @@ snapshots:
   braces@3.0.3:
     dependencies:
       fill-range: 7.1.1
-
-  broker-factory@3.1.15:
-    dependencies:
-      '@babel/runtime': 7.29.7
-      fast-unique-numbers: 9.0.27
-      tslib: 2.8.1
-      worker-factory: 7.0.50
 
   browserslist@4.28.4:
     dependencies:
@@ -6762,11 +6719,6 @@ snapshots:
       glob-parent: 5.1.2
       merge2: 1.4.1
       micromatch: 4.0.8
-
-  fast-unique-numbers@9.0.27:
-    dependencies:
-      '@babel/runtime': 7.29.7
-      tslib: 2.8.1
 
   fastq@1.20.1:
     dependencies:
@@ -8034,12 +7986,6 @@ snapshots:
 
   standard-navigation@0.0.5: {}
 
-  standardized-audio-context@25.3.77:
-    dependencies:
-      '@babel/runtime': 7.29.7
-      automation-events: 7.1.19
-      tslib: 2.8.1
-
   statuses@1.5.0: {}
 
   statuses@2.0.2: {}
@@ -8291,27 +8237,6 @@ snapshots:
     dependencies:
       defaults: 1.0.4
 
-  web-audio-beat-detector-broker@5.0.16:
-    dependencies:
-      '@babel/runtime': 7.29.7
-      broker-factory: 3.1.15
-      standardized-audio-context: 25.3.77
-      tslib: 2.8.1
-      web-audio-beat-detector-worker: 6.0.14
-
-  web-audio-beat-detector-worker@6.0.14:
-    dependencies:
-      '@babel/runtime': 7.29.7
-      tslib: 2.8.1
-      worker-factory: 7.0.50
-
-  web-audio-beat-detector@8.2.38:
-    dependencies:
-      '@babel/runtime': 7.29.7
-      tslib: 2.8.1
-      web-audio-beat-detector-broker: 5.0.16
-      web-audio-beat-detector-worker: 6.0.14
-
   webidl-conversions@5.0.0: {}
 
   whatwg-fetch@3.6.20: {}
@@ -8327,12 +8252,6 @@ snapshots:
   which@2.0.2:
     dependencies:
       isexe: 2.0.0
-
-  worker-factory@7.0.50:
-    dependencies:
-      '@babel/runtime': 7.29.7
-      fast-unique-numbers: 9.0.27
-      tslib: 2.8.1
 
   wrap-ansi@7.0.0:
     dependencies:
