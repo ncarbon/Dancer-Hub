@@ -12,6 +12,7 @@ import {
   nextCue,
 } from '@/lib/routineStore';
 import { sectionColor } from '@/lib/routineTheme';
+import { getTrackAttribution } from '@/lib/attribution';
 import type { RoutineWithChildren } from '@/lib/routines';
 import VideoStage from './VideoStage';
 import SectionStrip from './SectionStrip';
@@ -187,6 +188,7 @@ function RoutinePlayerInner({
   const sec = currentSection(state);
   const cue = currentCue(state);
   const nxt = nextCue(state);
+  const attribution = getTrackAttribution(routine);
 
   async function saveRoutineInfo(name: string, style: string | null) {
     setRoutineName(name);
@@ -229,6 +231,20 @@ function RoutinePlayerInner({
             </a>
           )}
         </div>
+      )}
+
+      {attribution && (
+        <p className="text-[11px] text-gray-400">
+          {attribution.credit}, licensed under{' '}
+          <a
+            href={attribution.licenseUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-gray-600"
+          >
+            {attribution.licenseLabel}
+          </a>
+        </p>
       )}
 
       <SectionStrip sections={state.sections} activeSectionId={sec?.id} onSectionPress={seekTo} />
