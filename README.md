@@ -1,7 +1,5 @@
 # Dancer Hub
 
-> **Work in progress.** Core playback, timeline editing, and song lookup are functional; several features are still being built out.
-
 A choreography practice app for dancers. Create a routine with audio and/or video, mark sections and cues on a timeline, then rehearse with speed control and a configurable start delay so you have time to get into position before the music begins.
 
 The web app also includes **Song Lookup**: search Spotify for a track, resolve its BPM, preview the audio, and see which dance styles often fit that tempo and groove.
@@ -10,9 +8,19 @@ The web app also includes **Song Lookup**: search Spotify for a track, resolve i
 
 ## Screenshots
 
+### Web
+| Home | Timeline Editor | Song Lookup |
+|---|---|---|
+| ![Home](apps/web/public/images/homepage.png) | ![Timeline Editor](apps/web/public/images/timeline_editor.png) | ![Song Lookup](apps/web/public/images/song_lookup_results.png) |
+
+More in [apps/web/README.md](apps/web/README.md).
+
+### Mobile
 | Library | Player | Timeline Editor |
 |---|---|---|
 | ![Routines](shared-assets/routines.jpg) | ![Player](shared-assets/player.jpg) | ![Editor](shared-assets/editor.jpg) |
+
+More in [apps/mobile/README.md](apps/mobile/README.md).
 
 ---
 
@@ -37,8 +45,8 @@ Style rules live in `packages/shared/src/danceStyles.ts`.
 
 ## What's still in progress
 
-- A-B loop (schema exists, not implemented)
-- Task / performance-prep checklist
+- A-B loop (schema exists, not implemented on either platform)
+- Task / performance-prep checklist (mobile-only — see `apps/mobile/app/(tabs)/prep.tsx` — not yet on web)
 - Sharing / multi-user support
 - Per-style demo clips (removed pending licensed footage — shows a "Demo soon" placeholder for now)
 
@@ -48,9 +56,9 @@ Style rules live in `packages/shared/src/danceStyles.ts`.
 
 | Path | Role |
 |---|---|
-| `apps/web` | Next.js web app |
+| `apps/web` | Next.js web app — see [apps/web/README.md](apps/web/README.md) |
 | `apps/api` | Express API (Spotify + tempo lookup) |
-| `apps/mobile` | Expo mobile app |
+| `apps/mobile` | Expo mobile app — see [apps/mobile/README.md](apps/mobile/README.md) |
 | `packages/shared` | Shared types and dance-style matching |
 
 ---
