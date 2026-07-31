@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { useSession } from '@/lib/useSession';
 import {
   RoutineStoreProvider,
   useRoutineStore,
@@ -50,6 +51,9 @@ function RoutinePlayerInner({
   videoUrl: string | null;
 }) {
   const router = useRouter();
+  const { user } = useSession();
+  const isOwner = !!user && routine.user_id === user.id;
+  const isDemo = routine.user_id === null;
   const { state, dispatch } = useRoutineStore();
   const [routineName, setRoutineName] = useState(routine.name);
   const [routineStyle, setRoutineStyle] = useState<string | null>(routine.style);
@@ -191,6 +195,7 @@ function RoutinePlayerInner({
   const attribution = getTrackAttribution(routine);
 
   async function saveRoutineInfo(name: string, style: string | null) {
+    if (!isOwner) return; // unreachable via UI once the edit affordance is hidden below; guards direct calls
     setRoutineName(name);
     setRoutineStyle(style);
     setInfoModalOpen(false);
@@ -206,7 +211,8 @@ function RoutinePlayerInner({
         onToggleMirror={() => dispatch({ type: 'TOGGLE_MIRROR' })}
         routineName={routineName}
         onBack={() => router.back()}
-        onEditInfo={() => setInfoModalOpen(true)}
+        onEditInfo={isOwner ? () => setInfoModalOpen(true) : undefined}
+        demo={isDemo}
         sectionName={sec?.name ?? null}
         sectionColorHex={sec ? sectionColor(sec.name) : null}
         cue={cue}
@@ -271,12 +277,14 @@ function RoutinePlayerInner({
         onSetDelay={(delayMs) => dispatch({ type: 'SET_DELAY', delayMs })}
       />
 
-      <Link
-        href={`/routines/${routine.id}/edit`}
-        className="block rounded-full border border-brand-500 py-3 text-center text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors"
-      >
-        Open timeline editor →
-      </Link>
+      {isOwner && (
+        <Link
+          href={`/routines/${routine.id}/edit`}
+          className="block rounded-full border border-brand-500 py-3 text-center text-sm font-medium text-brand-600 hover:bg-brand-50 transition-colors"
+        >
+          Open timeline editor →
+        </Link>
+      )}
 
       <RoutineInfoModal
         open={infoModalOpen}

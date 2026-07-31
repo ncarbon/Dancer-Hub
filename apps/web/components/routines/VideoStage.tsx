@@ -13,6 +13,7 @@ export default function VideoStage({
   routineName,
   onBack,
   onEditInfo,
+  demo,
   sectionName,
   sectionColorHex,
   cue,
@@ -24,7 +25,8 @@ export default function VideoStage({
   onToggleMirror: () => void;
   routineName: string;
   onBack: () => void;
-  onEditInfo: () => void;
+  onEditInfo?: () => void;
+  demo?: boolean;
   sectionName: string | null;
   sectionColorHex: string | null;
   cue: EditorCue | null;
@@ -56,14 +58,21 @@ export default function VideoStage({
         <p className="min-w-0 flex-1 truncate text-sm font-medium text-white drop-shadow">
           {routineName || 'Practice'}
         </p>
-        <button
-          type="button"
-          onClick={onEditInfo}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/85"
-          aria-label="Edit routine info"
-        >
-          ✎
-        </button>
+        {demo && (
+          <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
+            Demo
+          </span>
+        )}
+        {onEditInfo && (
+          <button
+            type="button"
+            onClick={onEditInfo}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white/85"
+            aria-label="Edit routine info"
+          >
+            ✎
+          </button>
+        )}
       </div>
 
       {sectionName && (

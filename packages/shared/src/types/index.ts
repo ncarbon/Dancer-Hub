@@ -41,6 +41,7 @@ export interface Routine {
   tempo_bpm: number | null;
   musical_key: string | null;
   metadata_fetched_at: string | null;
+  user_id: string | null;
 }
 
 export interface Section {

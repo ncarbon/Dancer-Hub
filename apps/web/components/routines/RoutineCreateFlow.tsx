@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useSession } from '@/lib/useSession';
 import { RoutineStoreProvider, useRoutineStore } from '@/lib/routineStore';
 import RoutineDetailsForm, { type RoutineDetails } from './RoutineDetailsForm';
 import RoutineTimelineEditor from './RoutineTimelineEditor';
@@ -57,6 +58,18 @@ function TimelineStep({
     setSaving(true);
     setError(null);
 
+    // Server-validated (not just the local session) since this becomes a
+    // permanent user_id FK on the row — re-check even though the outer
+    // RoutineCreateFlow already gated entry to this screen.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setError('Your session expired — please sign in again.');
+      setSaving(false);
+      return;
+    }
+
     let audioFilePath: string | null = null;
     let videoFilePath: string | null = null;
 
@@ -87,6 +100,7 @@ function TimelineStep({
     const { data: routine, error: insertErr } = await supabase
       .from('routines')
       .insert({
+        user_id: user.id,
         name: details.name,
         style: details.style,
         duration_sec: state.duration,
@@ -149,8 +163,15 @@ function TimelineStep({
 
 export default function RoutineCreateFlow() {
   const router = useRouter();
+  const { user, loading } = useSession();
   const [step, setStep] = useState<Step>('details');
   const [details, setDetails] = useState<RoutineDetails | null>(null);
+
+  useEffect(() => {
+    if (!loading && !user) router.replace('/login?redirect=/routines/new');
+  }, [loading, user, router]);
+
+  if (loading || !user) return null;
 
   if (step === 'details') {
     return (

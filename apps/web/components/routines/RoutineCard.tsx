@@ -33,7 +33,14 @@ export default function RoutineCard({ routine }: { routine: RoutineWithChildren 
           <HatchPlaceholder className="w-14 h-14 rounded-lg shrink-0" />
         )}
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-gray-900 truncate">{routine.name}</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="font-semibold text-gray-900 truncate">{routine.name}</p>
+            {routine.user_id === null && (
+              <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+                Demo
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500 mt-0.5 truncate">{metaLine}</p>
           <p className={`text-sm mt-1 truncate ${hasCues ? 'text-gray-400' : 'text-gray-300 italic'}`}>
             {hasCues

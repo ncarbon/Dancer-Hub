@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Link from 'next/link';
+import AuthNavSlot from '@/components/auth/AuthNavSlot';
 
 export const metadata: Metadata = {
   title: 'Dancer Hub',
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Dancer Hub
             </Link>
             <div className="flex items-center gap-2 sm:gap-3">
+              <AuthNavSlot />
               <Link
                 href="/routines"
                 className="text-sm font-medium text-gray-600 hover:text-gray-900 px-2 py-2"
