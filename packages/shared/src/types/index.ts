@@ -14,12 +14,6 @@ export interface AudioTrack {
   metadata_fetched_at: string | null;
 }
 
-export interface UploadAudioPayload {
-  title: string;
-  file: File | Blob;
-  fileName: string;
-}
-
 // ─── Routines schema ──────────────────────────────────────────────────────────
 
 export interface Routine {
@@ -40,6 +34,13 @@ export interface Routine {
   video_file_name: string | null;
   video_duration_sec: number | null;
   created_at: string;
+  spotify_track_id: string | null;
+  spotify_url: string | null;
+  album_art_url: string | null;
+  artist: string | null;
+  tempo_bpm: number | null;
+  musical_key: string | null;
+  metadata_fetched_at: string | null;
 }
 
 export interface Section {
