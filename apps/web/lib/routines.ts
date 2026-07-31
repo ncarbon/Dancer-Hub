@@ -3,6 +3,18 @@ import type { Routine, Section, Cue } from '@dancer-hub/shared';
 
 export type RoutineWithChildren = Routine & { sections: Section[]; cues: Cue[] };
 
+export async function fetchRoutines(): Promise<{ data: RoutineWithChildren[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from('routines')
+    .select('*, sections(*), cues(*)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+  return { data: (data as RoutineWithChildren[] | null) ?? [], error: null };
+}
+
 export async function fetchRoutineWithChildren(
   id: string,
 ): Promise<{ data: RoutineWithChildren | null; error: string | null }> {

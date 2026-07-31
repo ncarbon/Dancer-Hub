@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
-import type { RoutineWithChildren } from '@/lib/routines';
+import { fetchRoutines, type RoutineWithChildren } from '@/lib/routines';
 import RoutineCard from '@/components/routines/RoutineCard';
 
 export default function RoutinesPage() {
@@ -12,20 +11,16 @@ export default function RoutinesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchRoutines() {
-      const { data, error } = await supabase
-        .from('routines')
-        .select('*, sections(*), cues(*)')
-        .order('created_at', { ascending: false });
-
+    async function load() {
+      const { data, error } = await fetchRoutines();
       if (error) {
-        setError(error.message);
+        setError(error);
       } else {
-        setRoutines((data as RoutineWithChildren[] | null) ?? []);
+        setRoutines(data);
       }
       setLoading(false);
     }
-    fetchRoutines();
+    load();
   }, []);
 
   if (loading) {

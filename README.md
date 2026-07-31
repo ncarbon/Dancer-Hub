@@ -2,7 +2,7 @@
 
 > **Work in progress.** Core playback, timeline editing, and song lookup are functional; several features are still being built out.
 
-A choreography practice app for dancers. Upload an audio track, mark sections and cues on a timeline, then rehearse with speed control and a configurable start delay so you have time to get into position before the music begins.
+A choreography practice app for dancers. Create a routine with audio and/or video, mark sections and cues on a timeline, then rehearse with speed control and a configurable start delay so you have time to get into position before the music begins.
 
 The web app also includes **Song Lookup**: search Spotify for a track, resolve its BPM, preview the audio, and see which dance styles often fit that tempo and groove.
 
@@ -18,11 +18,12 @@ The web app also includes **Song Lookup**: search Spotify for a track, resolve i
 
 ## What works
 
-### Practice / routines
-- Upload audio and create a routine
+### Practice / routines (`/routines`)
+- Create a routine — attach audio and/or video (upload or record audio in-browser), pick a style, optionally search Spotify to pull BPM/key/artist metadata
 - Timeline editor — add sections and cues, drag to retime
-- Playback with speed control (0.25×–1.5×) and pitch lock
+- Playback with speed control (0.25×–1.5×), pitch lock, and mirror flip for video
 - Start delay (0–15s) to give time to get in position before music starts
+- Home dashboard (`/`) surfaces recent routines and quick stats
 
 ### Song Lookup (`/lookup`)
 - Search Spotify and pick a track (with in-app audio preview)
@@ -31,17 +32,15 @@ The web app also includes **Song Lookup**: search Spotify for a track, resolve i
   2. **AcousticBrainz** (via MusicBrainz)
   3. **Preview analysis** (Deezer 30s clip → beat detection)
 - Suggest compatible dance styles from curated tempo ranges, meter, and danceability
-- Optional demos per style (drop MP4s into `apps/web/public/demos/` — see that folder’s README)
 
 Style rules live in `packages/shared/src/danceStyles.ts`.
 
 ## What's still in progress
 
-- A-B loop (removed temporarily, being rebuilt)
-- Video attachment and playback
-- Task checklist
+- A-B loop (schema exists, not implemented)
+- Task / performance-prep checklist
 - Sharing / multi-user support
-- First-party dance style demo clips
+- Per-style demo clips (removed pending licensed footage — shows a "Demo soon" placeholder for now)
 
 ---
 
@@ -98,7 +97,6 @@ pnpm dev:web
 - API: [http://localhost:4000](http://localhost:4000)
 - Song Lookup: [http://localhost:3000/lookup](http://localhost:3000/lookup)
 
-If you see `EADDRINUSE` on port 4000, an old API process is still running — stop it, then start `apps/api` again.
 
 ### Attribution
 

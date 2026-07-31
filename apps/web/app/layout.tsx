@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-gray-50 text-gray-900">
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <nav className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-            <Link href="/routines" className="text-xl font-bold text-brand-600 shrink-0">
+            <Link href="/" className="text-xl font-bold text-brand-600 shrink-0">
               Dancer Hub
             </Link>
             <div className="flex items-center gap-2 sm:gap-3">
