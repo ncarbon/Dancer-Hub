@@ -2,6 +2,14 @@
 
 This README covers `apps/web` (Next.js) and `apps/api` (Express) — the full-stack app. A third app, `apps/mobile` (Expo/React Native), lives in this monorepo and shares code with `apps/web` via `packages/shared`.
 
+## Contents
+
+- [What it does](#what-it-does)
+- [How to run it](#how-to-run-it)
+- [Main choices](#main-choices)
+- [What I'd build next](#what-id-build-next)
+- [Attribution](#attribution)
+
 ## What it does
 
 Dancer Hub is a rehearsal tool for dancers. You create a "routine" — attach audio and/or video (upload a file or record audio right in the browser), tag it with sections ("Chorus", "Bridge") and cues ("lift", "formation change") pinned to specific timestamps on a draggable timeline, then rehearse with slowed-down playback (with pitch correction), a configurable countdown delay before the music starts, and a mirror-flip for video. Routines can also be looked up on Spotify to pull in real BPM/key/artist metadata automatically.
@@ -9,6 +17,8 @@ Dancer Hub is a rehearsal tool for dancers. You create a "routine" — attach au
 A separate **Song Lookup** tool searches Spotify for any track, resolves its tempo through a chain of fallback sources, and suggests which partner-dance styles (salsa, bachata, hustle, etc.) tend to fit that tempo and feel — this is the app's main third-party API integration surface.
 
 Auth is magic-link (passwordless email) via Supabase, with a handful of seeded example routines left permanently public and read-only so the app has something to look at without signing up.
+
+**Web App full details (screenshots, project structure, extra notes) in [apps/web/README.md](apps/web/README.md).**
 
 ## How to run it
 
@@ -38,8 +48,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 cd apps/api && npm run dev   # http://localhost:4000
 pnpm dev:web                 # http://localhost:3000
 ```
-
-Full detail (screenshots, project structure, extra notes) in [apps/web/README.md](apps/web/README.md).
 
 ## Main choices
 

@@ -4,6 +4,13 @@ Next.js (App Router) web app for Dancer Hub — build routines with cues and sec
 
 This app is part of the `dancer-hub` monorepo. For root-level setup (pnpm workspaces, `apps/api`, `apps/mobile`, `packages/shared`), see the [repo README](../../README.md).
 
+## Contents
+
+- [Screens](#screens)
+- [Structure](#structure)
+- [Local development](#local-development)
+- [Notes](#notes)
+
 ---
 
 ## Screens
