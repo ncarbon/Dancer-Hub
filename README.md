@@ -29,6 +29,7 @@ pnpm install
 ```
 
 **Environment** — `apps/api/.env.local`:
+
 ```bash
 PORT=4000
 ALLOWED_WEB_ORIGIN=http://localhost:3000
@@ -36,7 +37,9 @@ SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 GETSONGBPM_API_KEY=
 ```
+
 **Environment** — `apps/web/.env.local`:
+
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:4000
 NEXT_PUBLIC_SUPABASE_URL=
@@ -44,6 +47,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
 **Run** (two terminals):
+
 ```bash
 cd apps/api && npm run dev   # http://localhost:4000
 pnpm dev:web                 # http://localhost:3000
@@ -74,7 +78,3 @@ pnpm dev:web                 # http://localhost:3000
 ## Attribution
 
 Tempo & key catalog data is powered by [GetSongBPM](https://getsongbpm.com). Several example routines use audio from [Kevin MacLeod / Incompetech.com](https://incompetech.com), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (credited in-app on each routine that uses it).
-
----
-
-*`apps/mobile` (Expo) isn't part of this submission but is in the repo — see [apps/mobile/README.md](apps/mobile/README.md) if you're curious.*
